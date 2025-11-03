@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    image: postgis/postgis:14-3.3
+    container_name: tripflow-postgres
+    environment:
+      POSTGRES_USER: tripflow
+      POSTGRES_PASSWORD: tripflow
+      POSTGRES_DB: tripflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: tripflow-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: tripflow-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tripflow-api
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tripflow-celery-worker
+    env_file:
+      - ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: celery -A app.sync.celery_tasks worker --loglevel=info
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tripflow-celery-beat
+    env_file:
+      - ./backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: celery -A app.sync.celery_tasks beat --loglevel=info
+
+  # React Frontend (optional, to be implemented)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: tripflow-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - api
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   command: npm start
+
+volumes:
+  postgres_data:
+  qdrant_data:
