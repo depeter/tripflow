@@ -1,0 +1,28 @@
+# Docker Compose Override for scraparr server
+# This file overrides settings in docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Override API port to avoid conflict with other services
+  api:
+    ports:
+      - "8001:8000"
+    environment:
+      - PORT=8000
+
+  # PostgreSQL - use different port if needed
+  postgres:
+    ports:
+      - "5433:5432"
+
+  # Qdrant - keep default ports
+  qdrant:
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+  # Redis - keep default port
+  redis:
+    ports:
+      - "6379:6379"

@@ -1,0 +1,51 @@
+.map-view-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.numbered-marker {
+  position: relative;
+}
+
+.marker-pin {
+  width: 30px;
+  height: 42px;
+  position: relative;
+  background-color: var(--secondary-blue);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.marker-pin::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  margin: 4px 0 0 4px;
+  background: white;
+  position: absolute;
+  border-radius: 50%;
+}
+
+.marker-pin span {
+  position: absolute;
+  z-index: 10;
+  color: var(--secondary-blue);
+  font-weight: 700;
+  font-size: 14px;
+  transform: rotate(45deg);
+  top: 50%;
+  left: 50%;
+  margin-top: -9px;
+  margin-left: -4px;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}

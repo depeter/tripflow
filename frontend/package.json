@@ -10,18 +10,23 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
     "axios": "^1.6.0",
-    "react-router-dom": "^6.20.0",
+    "date-fns": "^4.1.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1"
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.66.0",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.20.0",
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.8",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/leaflet": "^1.9.8"
+    "@types/react-dom": "^18.2.0"
   },
   "eslintConfig": {
     "extends": [

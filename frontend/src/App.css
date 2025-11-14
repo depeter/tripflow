@@ -1,0 +1,51 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-header {
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.wizard-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wizard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wizard-footer {
+  background: white;
+  border-top: 1px solid var(--gray-200);
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.step-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}

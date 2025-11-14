@@ -1,0 +1,36 @@
+# Docker Compose for Tripflow Database
+# This creates a dedicated PostgreSQL instance for Tripflow with PostGIS
+
+version: '3.8'
+
+services:
+  tripflow-db:
+    image: postgis/postgis:15-3.3
+    container_name: tripflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tripflow
+    ports:
+      - "5433:5432"  # Using 5433 to avoid conflict with existing PostgreSQL
+    volumes:
+      - tripflow-postgres-data:/var/lib/postgresql/data
+      - ./backend/db/init_tripflow_schema.sql:/docker-entrypoint-initdb.d/02-schema.sql:ro
+      - ./backend/db/init_tripflow_db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - tripflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tripflow-postgres-data:
+    name: tripflow-postgres-data
+
+networks:
+  tripflow-network:
+    name: tripflow-network
+    external: false

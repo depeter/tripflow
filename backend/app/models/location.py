@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, Enum as SQLEnum, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY
 from geoalchemy2 import Geometry
 from enum import Enum

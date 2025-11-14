@@ -1,0 +1,159 @@
+.step1-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+}
+
+.step1-content {
+  max-width: 1000px;
+  width: 100%;
+}
+
+.step1-hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.step1-hero h1 {
+  font-size: 3rem;
+  color: var(--gray-900);
+  margin-bottom: 1rem;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--gray-600);
+  margin-bottom: 1rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.trip-type-selection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.trip-type-card {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.trip-type-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary-green), var(--secondary-blue));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.trip-type-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.trip-type-card:hover::before {
+  opacity: 1;
+}
+
+.trip-type-card.selected {
+  border-color: var(--primary-green);
+  box-shadow: 0 12px 24px rgba(16, 185, 129, 0.2);
+  transform: translateY(-8px);
+}
+
+.trip-type-card.selected::before {
+  opacity: 1;
+}
+
+.card-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.trip-type-card h2 {
+  font-size: 1.75rem;
+  color: var(--gray-900);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.trip-type-card p {
+  font-size: 1rem;
+  color: var(--gray-600);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features-list li {
+  padding: 0.5rem 0;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.features-list li::before {
+  content: '✓';
+  color: var(--primary-green);
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .step1-hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .trip-type-selection {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .trip-type-card {
+    padding: 2rem;
+  }
+
+  .card-icon {
+    font-size: 3rem;
+  }
+}

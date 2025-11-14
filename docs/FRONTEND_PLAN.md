@@ -13,7 +13,7 @@ A step-by-step wizard interface that guides users through trip planning with per
 **UI Elements**:
 - Hero section with "Plan Your Next Adventure"
 - Two main options:
-  - 🚐 "Camper Trip" (multi-day with overnight stays)
+  - 🚐 "Multi Day Trip" (multi-day with overnight stays)
   - 🚗 "Day Trip" (single day exploration)
 - Quick stats: "1000+ locations | AI-powered recommendations"
 
@@ -23,28 +23,105 @@ A step-by-step wizard interface that guides users through trip planning with per
 
 ---
 
-### **Step 2: Start & Destination**
+### **Step 2: Start & Travel Duration**
 
-**Purpose**: Define trip geography
+**Purpose**: Define trip starting point and duration preferences with real-time interactive route planning
+
+**Key Interaction**: All changes trigger immediate route recalculation and map updates
 
 **UI Layout** (Split Screen):
 - **Left Panel**: Form inputs
   - "Where are you starting?" (address autocomplete)
-  - "Where do you want to end up?" (optional)
-    - Option: "Round trip (return to start)"
-  - "How far do you want to travel?" (slider: 0-1000 km)
-  - For multi-day: "How many days?" (1-30 days)
+  - For multi-day: "How many days?" (1-30 days slider/input)
+  - For day trip: "How many hours?" (2-12 hours slider)
+  - "How far are you willing to travel?" (slider: 0-1000 km)
 
-- **Right Panel**: Live map
-  - Shows start/end markers
-  - Draws estimated route line
-  - Updates as user types
+  - **Planning Mode** (toggle options):
+    - 🎯 **Option 1: "Explore based on duration"** (default/recommended)
+      - "Let us suggest destinations based on your time and distance"
+      - Checkbox: "Round trip (return to start)"
+    - 📍 **Option 2: "I have a destination in mind"**
+      - "Where do you want to end up?" (address autocomplete)
+      - Shows route preview on map
+
+  - **Waypoints** (for multi-day trips only):
+    - "Any places you want to visit along the way?" (optional)
+    - "+ Add waypoint" button
+    - Each waypoint input supports:
+      - 🌍 **General locations**: "Germany", "Swiss Alps", "French Riviera"
+      - 📍 **Specific spots**: "Legoland Denmark", "Eiffel Tower", "Neuschwanstein Castle"
+    - Autocomplete with location type indicator (country/region/city/attraction)
+    - Draggable list to reorder waypoints
+    - Remove button (×) for each waypoint
+    - Example placeholder: "e.g., Belgium, Amsterdam, or Europa-Park"
+
+- **Right Panel**: Live interactive map
+  - **Real-time updates** - Map recalculates and redraws instantly on any change:
+    - Start/end address typing (debounced)
+    - Distance slider adjustment
+    - Waypoint add/remove/reorder
+    - Planning mode toggle
+  - Shows start marker (always visible)
+  - For Option 1: Shows radius circle based on max distance (updates as slider moves)
+  - For Option 2: Shows start/end markers and estimated route line
+  - Waypoint markers (numbered 1, 2, 3...) with connecting route
+  - **Draggable markers** - Users can drag waypoints on map to reorder or adjust position
+  - Route line with distance segments between points
+  - Smooth animations for route changes
+
+**Live Route Stats Panel** (overlays bottom of map or left panel):
+```
+📏 Total Distance: 450 km (updates in real-time)
+⏱️ Estimated Driving: 5.2 hours
+📅 Trip Feasibility: ✅ Fits in 3 days | ⚠️ Tight schedule | ❌ Too ambitious
+🗺️ Waypoints: 3 stops
+```
+
+**Interactive Features**:
+- **Auto-optimization**: "Optimize route order" button recalculates best waypoint sequence
+- **Feasibility warnings**:
+  - "⚠️ This route is 800km - consider adding a day or reducing waypoints"
+  - "✅ Comfortable pace - plenty of time for exploration"
+- **Smart suggestions**:
+  - "💡 Add overnight stop between Amsterdam and Munich? (500km)"
+- **Drag-and-drop on map**:
+  - Drag waypoint markers to adjust position
+  - Drag route line to add intermediate waypoint
+- **Real-time validation**:
+  - Shows error if addresses can't be geocoded
+  - Warns if total distance exceeds selected max distance
 
 **Data Collected**:
 - `start_address`: string
-- `end_address`: string (optional)
+- `duration_days`: number (for multi-day trips)
+- `duration_hours`: number (for day trips)
 - `max_distance_km`: number
-- `duration_days`: number (for campers)
+- `planning_mode`: "explore" | "destination"
+- `is_round_trip`: boolean
+- `end_address`: string (optional, only if planning_mode = "destination")
+- `waypoints`: array (for multi-day trips, optional)
+  - Each waypoint contains:
+    - `name`: string (e.g., "Germany" or "Legoland Denmark")
+    - `type`: "country" | "region" | "city" | "attraction" | "address"
+    - `coordinates`: {lat, lng} (if geocoded)
+    - `order`: number (for sequencing)
+- `route_stats`: object (calculated in real-time)
+  - `total_distance_km`: number
+  - `estimated_driving_hours`: number
+  - `feasibility_status`: "comfortable" | "tight" | "too_ambitious"
+
+**Technical Implementation Notes for Step 2**:
+- **Debouncing**: Address input debounced (300ms) to avoid excessive geocoding API calls
+- **Route Calculation**: Use routing API (e.g., OSRM, Google Directions) to calculate actual driving routes
+- **State Management**:
+  - Local component state for immediate UI updates
+  - API calls triggered on state changes to fetch route geometry
+- **Loading States**: Show skeleton/spinner on map during route recalculation
+- **Error Handling**: Graceful fallback if geocoding or routing fails
+- **Performance**:
+  - Cache geocoded locations
+  - Throttle route recalculations during rapid slider adjustments
+  - Use route simplification for initial preview
 
 ---
 
