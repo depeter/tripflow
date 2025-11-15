@@ -29,10 +29,13 @@ aiohttp==3.9.1
 celery==5.3.6
 redis==5.0.1
 
-# Authentication
+# Authentication & Payments
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
+stripe==13.2.0
+authlib==1.6.5
+itsdangerous==2.2.0
 
 # Utilities
 python-dotenv==1.0.0

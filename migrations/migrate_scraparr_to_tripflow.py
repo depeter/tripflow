@@ -180,7 +180,7 @@ class ScraparrToTripflowMigration:
             with self.tripflow_conn.cursor() as tripflow_cur:
 
                 # Count total records
-                scraparr_cur.execute("SELECT COUNT(*) as total FROM scraper_2.places")
+                scraparr_cur.execute("SELECT COUNT(*) as total FROM scraper_1.places")
                 total_count = scraparr_cur.fetchone()['total']
 
                 if limit:
@@ -194,7 +194,7 @@ class ScraparrToTripflowMigration:
                     current_batch_size = min(batch_size, total_count - offset)
 
                     scraparr_cur.execute("""
-                        SELECT * FROM scraper_2.places
+                        SELECT * FROM scraper_1.places
                         ORDER BY id
                         LIMIT %s OFFSET %s
                     """, (current_batch_size, offset))
@@ -228,12 +228,12 @@ class ScraparrToTripflowMigration:
                             if place.get('etiquettes'):
                                 tags = [tag.strip() for tag in place['etiquettes'].split(',') if tag.strip()]
 
-                            # Insert or update location
+                            # Insert or update location (WITHOUT PostGIS geom)
                             tripflow_cur.execute("""
                                 INSERT INTO tripflow.locations (
                                     external_id, source, source_url,
                                     name, description, location_type,
-                                    latitude, longitude, geom,
+                                    latitude, longitude,
                                     city, country,
                                     rating, rating_count,
                                     price_type, price_min, price_max, price_info,
@@ -244,7 +244,7 @@ class ScraparrToTripflowMigration:
                                 ) VALUES (
                                     %s, %s, %s,
                                     %s, %s, %s,
-                                    %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                                    %s, %s,
                                     %s, %s,
                                     %s, %s,
                                     %s, %s, %s, %s,
@@ -271,8 +271,6 @@ class ScraparrToTripflowMigration:
                                 location_type,  # location_type
                                 float(place['latitude']) if place.get('latitude') else None,  # latitude
                                 float(place['longitude']) if place.get('longitude') else None,  # longitude
-                                float(place['longitude']) if place.get('longitude') else None,  # geom lon
-                                float(place['latitude']) if place.get('latitude') else None,  # geom lat
                                 place.get('ville'),  # city
                                 place.get('pays'),  # country
                                 float(place['note']) if place.get('note') else None,  # rating
@@ -314,7 +312,7 @@ class ScraparrToTripflowMigration:
             with self.tripflow_conn.cursor() as tripflow_cur:
 
                 # Count total events
-                scraparr_cur.execute("SELECT COUNT(*) as total FROM scraper_3.events")
+                scraparr_cur.execute("SELECT COUNT(*) as total FROM scraper_2.events")
                 total_count = scraparr_cur.fetchone()['total']
 
                 if limit:
@@ -328,7 +326,7 @@ class ScraparrToTripflowMigration:
                     current_batch_size = min(batch_size, total_count - offset)
 
                     scraparr_cur.execute("""
-                        SELECT * FROM scraper_3.events
+                        SELECT * FROM scraper_2.events
                         ORDER BY id
                         LIMIT %s OFFSET %s
                     """, (current_batch_size, offset))
@@ -341,19 +339,19 @@ class ScraparrToTripflowMigration:
                             location_name = event.get('location_name') or event.get('name')
 
                             if event.get('latitude') and event.get('longitude'):
-                                # Insert location for the event
+                                # Insert location for the event (WITHOUT PostGIS geom)
                                 tripflow_cur.execute("""
                                     INSERT INTO tripflow.locations (
                                         external_id, source, source_url,
                                         name, description, location_type,
-                                        latitude, longitude, geom,
+                                        latitude, longitude,
                                         address, city, postal_code, country, country_code,
                                         is_active, raw_data,
                                         created_at, updated_at
                                     ) VALUES (
                                         %s, %s, %s,
                                         %s, %s, %s,
-                                        %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326),
+                                        %s, %s,
                                         %s, %s, %s, %s, %s,
                                         %s, %s,
                                         %s, %s
@@ -373,8 +371,6 @@ class ScraparrToTripflowMigration:
                                     'EVENT',  # location_type
                                     float(event['latitude']),  # latitude
                                     float(event['longitude']),  # longitude
-                                    float(event['longitude']),  # geom lon
-                                    float(event['latitude']),  # geom lat
                                     event.get('street_address'),  # address
                                     event.get('city'),  # city
                                     event.get('postal_code'),  # postal_code
@@ -514,8 +510,8 @@ class ScraparrToTripflowMigration:
             # Update statistics
             self.update_location_statistics()
 
-            # Log sync
-            self.create_sync_log_entry('full', 'scraparr')
+            # Log sync (using 'other' for source since scraparr is not in the enum)
+            self.create_sync_log_entry('full', 'other')
 
             # Print summary
             duration = (datetime.now() - self.start_time).total_seconds()

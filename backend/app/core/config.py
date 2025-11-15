@@ -16,7 +16,14 @@ class Settings(BaseSettings):
     # Database - Main TripFlow database
     DATABASE_URL: str = "postgresql://tripflow:tripflow@localhost:5432/tripflow"
 
-    # Source databases for import/sync
+    # Scraparr database for migrations
+    SCRAPARR_DB_HOST: str = "localhost"
+    SCRAPARR_DB_PORT: int = 5434
+    SCRAPARR_DB_NAME: str = "scraparr"
+    SCRAPARR_DB_USER: str = "scraparr"
+    SCRAPARR_DB_PASSWORD: str = "scraparr"
+
+    # Source databases for import/sync (legacy)
     SOURCE_DB_PARK4NIGHT: Optional[str] = None
     SOURCE_DB_CAMPERCONTACT: Optional[str] = None
     SOURCE_DB_LOCAL_SITES: Optional[str] = None
@@ -35,10 +42,28 @@ class Settings(BaseSettings):
     SYNC_ENABLED: bool = True
     SYNC_SCHEDULE_HOURS: int = 24  # Sync every 24 hours
 
-    # Authentication (for future use)
-    SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION"
+    # Authentication
+    SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION_use-at-least-32-random-characters"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days
+
+    # OAuth - Google
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8001/api/v1/auth/google/callback"
+
+    # OAuth - Microsoft
+    MICROSOFT_CLIENT_ID: Optional[str] = None
+    MICROSOFT_CLIENT_SECRET: Optional[str] = None
+    MICROSOFT_REDIRECT_URI: str = "http://localhost:8001/api/v1/auth/microsoft/callback"
+    MICROSOFT_TENANT_ID: str = "common"
+
+    # Stripe Payment
+    STRIPE_SECRET_KEY: str = "sk_test_CHANGE_THIS"
+    STRIPE_PUBLISHABLE_KEY: str = "pk_test_CHANGE_THIS"
+    STRIPE_WEBHOOK_SECRET: str = "whsec_CHANGE_THIS"
+    STRIPE_PREMIUM_PRICE_ID: str = "price_CHANGE_THIS"  # Stripe Price ID for Premium tier
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]

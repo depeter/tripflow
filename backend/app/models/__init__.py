@@ -1,8 +1,9 @@
 from .base import Base
 from .location import Location, LocationType, LocationSource
-from .user import User, UserPreference
+from .user import User
 from .trip import Trip, TripStatus
 from .event import Event, EventCategory
+from .subscription import Subscription, SubscriptionUsage, PaymentHistory
 
 __all__ = [
     "Base",
@@ -10,9 +11,11 @@ __all__ = [
     "LocationType",
     "LocationSource",
     "User",
-    "UserPreference",
     "Trip",
     "TripStatus",
     "Event",
     "EventCategory",
+    "Subscription",
+    "SubscriptionUsage",
+    "PaymentHistory",
 ]
