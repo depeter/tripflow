@@ -16,7 +16,7 @@ class Trip(Base, TimestampMixin):
     __tablename__ = "trips"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("tripflow.users.id"), nullable=False, index=True)
 
     # Basic trip info
     name = Column(String)

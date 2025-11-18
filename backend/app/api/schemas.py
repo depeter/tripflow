@@ -178,3 +178,65 @@ class SyncResponse(BaseModel):
     updated: int
     errors: int
     duration_seconds: float
+
+
+# Event schemas (for Discovery Mode)
+class EventCategoryEnum(str, Enum):
+    FESTIVAL = "festival"
+    CONCERT = "concert"
+    SPORTS = "sports"
+    MARKET = "market"
+    EXHIBITION = "exhibition"
+    THEATER = "theater"
+    CULTURAL = "cultural"
+    FOOD = "food"
+    OUTDOOR = "outdoor"
+    OTHER = "other"
+
+
+class EventResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    category: EventCategoryEnum
+    start_datetime: datetime
+    end_datetime: Optional[datetime] = None
+    all_day: bool
+    venue_name: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    latitude: float
+    longitude: float
+    price: Optional[float] = None
+    currency: str = "EUR"
+    free: bool
+    website: Optional[str] = None
+    images: List[str] = []
+    tags: List[str] = []
+    organizer: Optional[str] = None
+    event_type: Optional[str] = None
+    themes: List[str] = []
+    source: str
+    distance_km: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DiscoverySearchParams(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    radius_km: int = Field(25, ge=1, le=200, description="Search radius in kilometers")
+    categories: Optional[List[EventCategoryEnum]] = Field(None, description="Filter by event categories")
+    start_date: Optional[datetime] = Field(None, description="Only events after this date")
+    end_date: Optional[datetime] = Field(None, description="Only events before this date")
+    free_only: bool = Field(False, description="Only show free events")
+    limit: int = Field(50, ge=1, le=200)
+
+
+class DiscoveryResponse(BaseModel):
+    events: List[EventResponse]
+    total_count: int
+    search_center: Dict[str, float]  # {"latitude": x, "longitude": y}
+    radius_km: int

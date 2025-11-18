@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password, fullName) => {
     try {
-      const userData = await authService.register(email, password, fullName);
+      await authService.register(email, password, fullName);
 
       // Auto-login after registration
       return await login(email, password);

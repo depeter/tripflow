@@ -1,77 +1,42 @@
+# Deployment artifacts
+deploy-auth*.sh
+deploy-to-scraparr.sh
+deploy-docker-to-scraparr.sh
+deploy-public-website.sh
+
+# Node modules
+frontend/node_modules/
+frontend/build/
+
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Environment files
+backend/.env
+frontend/.env.local
+frontend/.env.production.local
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-.DS_Store
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# OS
+.DS_Store
+Thumbs.db
 
 # Logs
 *.log
-logs/
+backend/backend.log
+frontend/frontend.log
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Docker
-.dockerignore
-
-# Node (for frontend)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnp/
-.pnp.js
-coverage/
-
-# Production
-build/
-dist/
-
-# Misc
-.cache/
-tmp/
-temp/
+# Temp
+/tmp/
+*.tmp

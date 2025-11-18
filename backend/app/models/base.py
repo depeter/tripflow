@@ -1,8 +1,10 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy import Column, Integer, DateTime, MetaData
 from datetime import datetime
 
-Base = declarative_base()
+# Configure metadata to use tripflow schema by default
+metadata = MetaData(schema="tripflow")
+Base = declarative_base(metadata=metadata)
 
 
 class TimestampMixin:

@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from sentence_transformers import SentenceTransformer
 import logging
 
-from app.models import Location, User, UserPreference, Trip
+from app.models import Location, User, Trip
 from app.db.qdrant_client import qdrant_service
 from app.services.location_service import LocationService
 

@@ -7,7 +7,18 @@ TripFlow is a full-stack web application for planning multi-day and day trips wi
 **Technology Stack:**
 - **Frontend**: React 18.2.0, React Router, Leaflet maps, jsPDF
 - **Backend**: FastAPI (Python), PostgreSQL with PostGIS, Qdrant vector DB, Redis
+- **Deployment**: Docker Compose with 7 containers, nginx reverse proxy
 - **APIs**: OpenStreetMap Nominatim (geocoding), OSRM (routing)
+
+## Quick Deployment
+
+**For production deployment to scraparr server:**
+```bash
+cd /home/peter/work/tripflow
+./deploy.sh
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment documentation.
 
 ## Current Status
 
@@ -58,6 +69,15 @@ TripFlow is a full-stack web application for planning multi-day and day trips wi
    - LocalStorage persistence
    - Validation and error handling
 
+7. **User Authentication** (Nov 15, 2025)
+   - Login page with email/password
+   - Registration page with validation
+   - JWT token management
+   - Automatic token refresh
+   - User menu with avatar dropdown
+   - Protected routes ready
+   - OAuth placeholders (Google/Microsoft)
+
 #### Backend (FastAPI)
 1. **API Structure**
    - `/api/v1/trips/` - Trip CRUD operations
@@ -87,19 +107,19 @@ TripFlow is a full-stack web application for planning multi-day and day trips wi
 ### 🚧 Missing/Incomplete Features
 
 1. **Database Setup**
-   - ❌ Database migrations not run (tables don't exist yet)
+   - ✅ Database schema created and deployed (Nov 15, 2025)
    - ❌ No seed data for locations/events
    - ❌ Qdrant vector database not indexed
 
 2. **Backend Functionality**
    - ❌ No actual location data in database
    - ❌ Recommendation engine needs data
-   - ❌ User authentication not implemented
+   - ✅ User authentication implemented (backend + frontend)
    - ❌ Email itinerary feature (placeholder)
 
 3. **Frontend Features**
    - ⚠️ Backend API integration partially complete (needs data)
-   - ❌ User authentication/login
+   - ✅ User authentication/login UI (Nov 15, 2025)
    - ❌ Save trips to account
    - ❌ View past trips
    - ❌ Share trip URLs
@@ -141,11 +161,15 @@ tripflow/
 │   ├── public/
 │   ├── src/
 │   │   ├── index.js                # React entry point
-│   │   ├── App.jsx                 # Main app component
+│   │   ├── App.jsx                 # Main app component with routes
 │   │   ├── index.css               # Global styles
 │   │   ├── context/
-│   │   │   └── TripContext.jsx     # Global state management
+│   │   │   ├── TripContext.jsx     # Trip state management
+│   │   │   └── AuthContext.jsx     # Auth state management
 │   │   ├── pages/
+│   │   │   ├── Login.jsx           # Login page
+│   │   │   ├── Register.jsx        # Registration page
+│   │   │   ├── Auth.css            # Auth pages stylesheet
 │   │   │   ├── TripFlowWizard.jsx  # Main wizard container
 │   │   │   ├── Step1_TripType.jsx
 │   │   │   ├── Step2_Duration.jsx
@@ -154,12 +178,15 @@ tripflow/
 │   │   │   ├── Step5_CustomizeRoute.jsx
 │   │   │   └── Step6_ReviewFinalize.jsx
 │   │   ├── components/
+│   │   │   ├── Header.jsx          # Navigation header with user menu
+│   │   │   ├── Header.css          # Header styles
 │   │   │   ├── MapView.jsx         # Leaflet map component
 │   │   │   ├── LocationCard.jsx
 │   │   │   ├── ProgressBar.jsx
 │   │   │   └── LoadingSpinner.jsx
 │   │   └── services/
-│   │       ├── api.js              # Axios client
+│   │       ├── api.js              # Axios client with auth
+│   │       ├── authService.js      # Auth API calls
 │   │       ├── tripsService.js     # Backend API calls
 │   │       ├── geocodingService.js # OSM Nominatim + OSRM
 │   │       ├── recommendationsService.js  # Mock data (legacy)
@@ -247,6 +274,42 @@ REACT_APP_NAME=TripFlow
 ## Key Implementation Details
 
 ### Frontend Architecture
+
+**Authentication System** (Nov 15, 2025)
+
+The frontend now has a complete authentication system:
+
+**AuthContext** (`src/context/AuthContext.jsx`):
+- Manages user state and authentication status
+- Provides login, register, logout, refreshUser functions
+- Automatically loads user on app mount
+- Stores JWT tokens in localStorage
+
+**API Integration** (`src/services/api.js`):
+- Axios interceptor adds Bearer token to all requests
+- Automatic token refresh on 401 responses
+- Redirects to login on auth failure
+
+**Auth Pages**:
+- `/login` - Email/password login with OAuth buttons
+- `/register` - User registration with validation
+- Modern gradient design with error handling
+
+**Header Component** (`src/components/Header.jsx`):
+- Navigation links (Plan Trip, My Trips)
+- User avatar dropdown with menu
+- Sign In/Get Started buttons when not authenticated
+- Profile, Settings, Sign Out options
+
+**Routes**:
+```javascript
+/ - Trip planning wizard (with header)
+/login - Login page
+/register - Registration page
+/my-trips - Saved trips (placeholder)
+/profile - User profile (placeholder)
+/settings - Account settings (placeholder)
+```
 
 **State Management (TripContext.jsx)**
 ```javascript
@@ -457,9 +520,46 @@ npm start
 ```bash
 # Reset everything
 localStorage.removeItem('tripflow_current_trip')  # Browser console
+localStorage.removeItem('access_token')           # Clear auth tokens
+localStorage.removeItem('refresh_token')
 docker compose restart  # Restart services
 rm -rf backend/venv && python -m venv venv  # Recreate venv if needed
 rm -rf frontend/node_modules && npm install  # Reinstall packages
+```
+
+### Authentication Testing
+
+**Test User Login:**
+```bash
+# Start backend
+cd /home/peter/work/tripflow/backend
+source venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+# Start frontend
+cd /home/peter/work/tripflow/frontend
+npm start
+
+# Visit http://localhost:3000/register to create account
+# Or use existing admin user: admin@tripflow.com / admin123
+```
+
+**API Testing:**
+```bash
+# Test registration
+curl -X POST http://localhost:8001/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123","full_name":"Test User"}'
+
+# Test login
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=test@example.com&password=password123"
+
+# Test authenticated endpoint
+TOKEN="your_token_here"
+curl -X GET http://localhost:8001/api/v1/auth/me \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Security Notes
@@ -497,8 +597,8 @@ rm -rf frontend/node_modules && npm install  # Reinstall packages
 - jsPDF: https://github.com/parallax/jsPDF
 
 **Project Status:** Active Development
-**Last Updated:** 2025-11-04
-**Version:** 0.1.0 (Alpha)
+**Last Updated:** 2025-11-15
+**Version:** 0.2.0 (Alpha - Authentication Added)
 
 ---
 
@@ -518,6 +618,9 @@ rm -rf frontend/node_modules && npm install  # Reinstall packages
 - ✅ PDF export
 - ✅ Route calculation
 - ✅ State persistence
+- ✅ User authentication (login/register)
+- ✅ Protected API routes
+- ✅ JWT token management
 
 **What Needs Data:**
 - ❌ AI recommendations (no locations in DB)
@@ -526,3 +629,239 @@ rm -rf frontend/node_modules && npm install  # Reinstall packages
 
 **Immediate Next Step:**
 Run database migrations and add seed data to enable full backend functionality.
+
+## Production Deployment (Scraparr Server)
+
+**Deployed**: November 15, 2025  
+**Server**: scraparr (192.168.1.149)  
+**Location**: `/home/peter/tripflow`
+
+### Running Services
+
+```
+✅ Tripflow Backend API: http://192.168.1.149:8001
+   - Health: http://192.168.1.149:8001/health
+   - API Docs: http://192.168.1.149:8001/docs
+   - Process: uvicorn app.main:app (port 8001)
+
+✅ Tripflow PostgreSQL: localhost:5433
+   - Container: tripflow-postgres
+   - User: postgres/tripflow
+   - Database: tripflow
+   - Schema: tripflow (12 tables)
+
+✅ Qdrant Vector DB: localhost:6333
+   - Container: tripflow-qdrant
+   - Collection: locations (exists but not indexed)
+
+✅ Redis: localhost:6379
+   - Container: tripflow-redis
+   - Used for: Celery task queue
+
+❌ Frontend: Not deployed yet
+   - Node.js not installed on server
+   - Plan: Production build with nginx
+```
+
+### Database Schema (Tripflow)
+
+**Schema**: `tripflow` (all tables use this schema)
+
+**Tables Created** (12 total):
+```sql
+-- Authentication & Users
+tripflow.users                      -- User accounts (admin@tripflow.com seeded)
+tripflow.user_sessions              -- JWT session tracking
+tripflow.oauth_connections          -- Google/Microsoft OAuth
+tripflow.email_verification_tokens  -- Email verification
+tripflow.password_reset_tokens      -- Password reset flow
+
+-- Core Data
+tripflow.locations                  -- Camping/parking locations (empty)
+tripflow.events                     -- Time-based events (empty)
+tripflow.reviews                    -- Location reviews
+
+-- Analytics & Tracking
+tripflow.trip_creations             -- Trip planning analytics
+tripflow.api_usage                  -- API usage tracking
+tripflow.sync_log                   -- ETL sync history
+tripflow.data_quality_metrics       -- Data quality monitoring
+```
+
+**Missing Tables** (will be auto-created when needed):
+- `trips` - Trip plans (model exists, table creation blocked by permissions - now fixed)
+- `subscriptions` - User subscriptions
+- `subscription_usage` - Usage tracking
+- `payment_history` - Payment records
+- `migration_runs` - Migration tracking (may exist in SQL)
+- `scraper_metadata` - Scraper info (may exist in SQL)
+
+### Deployment Fixes Applied (Nov 15, 2025)
+
+1. **Python Dependencies**:
+   - Downgraded `huggingface-hub` from 0.36.0 → 0.19.4 (compatibility with sentence-transformers)
+   - Downgraded `transformers` from 4.57.1 → 4.40.2
+   - Downgraded `tokenizers` from 0.22.1 → 0.19.1
+   - Installed `email-validator==2.3.0` for Pydantic email validation
+
+2. **Code Fixes**:
+   - Fixed `app/models/base.py`: Added `metadata = MetaData(schema="tripflow")`
+   - Fixed `app/models/trip.py`: Changed `ForeignKey("users.id")` → `ForeignKey("tripflow.users.id")`
+   - Fixed `app/models/event.py`: Changed `ForeignKey("locations.id")` → `ForeignKey("tripflow.locations.id")`
+   - Fixed `app/services/recommendation_service.py`: Removed non-existent `UserPreference` import
+
+3. **Database Configuration**:
+   - Updated `.env`: Changed port from 5435 → 5433
+   - Granted CREATE permission on schema: `GRANT CREATE ON SCHEMA tripflow TO tripflow;`
+   - Changed table ownership: `ALTER TABLE tripflow.* OWNER TO tripflow;`
+   - Granted all privileges: `GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA tripflow TO tripflow;`
+
+4. **Schema Initialization**:
+   - Ran `/home/peter/work/tripflow/backend/db/init_tripflow_schema.sql` (core tables)
+   - Ran `/home/peter/work/tripflow/migrations/add_users_auth.sql` (auth tables)
+   - SQLAlchemy will auto-create missing tables on first use
+
+### Integration with Scraparr
+
+**Data Flow**:
+```
+Scraparr DB (port 5434) → Migration Scripts → Tripflow DB (port 5433)
+```
+
+**Source Databases**:
+- Scraparr PostgreSQL: `localhost:5434`
+  - `scraper_2.places` - Park4Night camping spots (~49,000 records)
+  - `scraper_3.events` - UiT in Vlaanderen events (~10,000 records)
+
+**Migration Process** (not yet run):
+```bash
+cd /home/peter/tripflow/migrations
+source ../venv/bin/activate
+python migrate_all_scrapers.py
+```
+
+This will transform and load data from Scraparr into Tripflow's normalized schema.
+
+### Configuration Files
+
+**Backend `.env`** (on server):
+```env
+DATABASE_URL=postgresql://tripflow:tripflow@localhost:5433/tripflow
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+REDIS_URL=redis://localhost:6379/0
+
+# Source databases (for migration)
+SCRAPARR_DB_HOST=localhost
+SCRAPARR_DB_PORT=5434
+SOURCE_DB_PARK4NIGHT=postgresql://scraparr:scraparr@localhost:5434/scraparr
+```
+
+### Deployment Commands
+
+**Check Services**:
+```bash
+# Backend health
+curl http://192.168.1.149:8001/health
+
+# View logs
+ssh peter@scraparr "tail -f /home/peter/tripflow/backend.log"
+
+# Check database
+ssh peter@scraparr "docker exec tripflow-postgres psql -U postgres -d tripflow -c '\dt tripflow.*'"
+```
+
+**Restart Backend**:
+```bash
+ssh peter@scraparr "ps aux | grep 'uvicorn app.main' | grep -v grep | awk '{print \$2}' | xargs kill -9"
+ssh peter@scraparr "cd /home/peter/tripflow && source venv/bin/activate && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 > backend.log 2>&1 &"
+```
+
+**Deploy Code Changes**:
+```bash
+# From development machine
+cd /home/peter/work/tripflow
+./deploy-to-scraparr.sh
+
+# Or manually
+cat > /tmp/scraparr_pass.sh << 'EOF'
+#!/bin/sh
+echo "nomansland"
+EOF
+chmod +x /tmp/scraparr_pass.sh
+
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  scp -r backend frontend docker-compose.yml migrations peter@scraparr:/home/peter/tripflow/
+
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  ssh peter@scraparr "cd /home/peter/tripflow && source venv/bin/activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8001"
+```
+
+### Known Issues
+
+**Fixed Issues:**
+- ✅ `huggingface_hub` import error → downgraded to 0.19.4
+- ✅ Missing `email-validator` → installed via pip
+- ✅ `UserPreference` import error → removed from recommendation_service.py
+- ✅ Database port mismatch (5435 vs 5433) → updated .env
+- ✅ SQLAlchemy schema not configured → added `metadata = MetaData(schema="tripflow")`
+- ✅ Foreign keys without schema prefix → added "tripflow." to all FKs
+- ✅ Database permission errors → granted privileges and changed table ownership
+
+**Current Limitations:**
+- Frontend deployment incomplete (Node.js not installed on scraparr server)
+- Data migration not run yet (60,000+ locations waiting)
+- Qdrant indexing not performed yet
+- No production build of frontend created yet
+
+### Next Steps
+
+**Phase 1: Complete Backend Deployment** ✅
+- [x] Fix backend dependencies (huggingface_hub, email-validator)
+- [x] Fix database schema and permissions
+- [x] Start Qdrant and Redis containers
+- [x] Verify backend health endpoint works
+
+**Phase 2: Data Migration & Indexing**
+```bash
+# Run data migration from Scraparr to Tripflow
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  ssh peter@scraparr "cd /home/peter/tripflow && source venv/bin/activate && python -m scripts.sync_from_scraparr"
+
+# Index locations in Qdrant for AI recommendations
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  ssh peter@scraparr "cd /home/peter/tripflow && source venv/bin/activate && python -m scripts.index_locations"
+```
+
+**Phase 3: Frontend Deployment**
+```bash
+# Install Node.js on scraparr server (if needed)
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  ssh peter@scraparr "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
+
+# Build and deploy frontend
+cd /home/peter/work/tripflow/frontend
+npm install
+npm run build
+
+# Upload production build
+SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
+  scp -r build peter@scraparr:/home/peter/tripflow/frontend/
+
+# Configure nginx to serve frontend (see scraparr nginx config)
+```
+
+**Phase 4: Integration Testing**
+- Test auth endpoints (login, register, JWT tokens)
+- Test location search and recommendations
+- Test trip creation and planning
+- Verify Qdrant semantic search working
+- Check database query performance with 60K+ locations
+
+### Important Notes
+
+- **CPU-Only ML**: sentence-transformers runs on CPU despite PyTorch CUDA libs installed
+- **Schema Prefix Required**: All SQLAlchemy foreign keys must include "tripflow." schema prefix
+- **Data Source**: Tripflow reads Scraparr data via migration scripts, doesn't query Scraparr DB directly
+- **Port Allocation**: Backend 8001, Scraparr backend 8000, Tripflow DB 5433, Scraparr DB 5434
+- **Admin Credentials**: admin@tripflow.com / admin123 (seeded in add_users_auth.sql)

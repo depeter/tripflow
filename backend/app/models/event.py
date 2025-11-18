@@ -49,7 +49,7 @@ class Event(Base, TimestampMixin):
     geom = Column(Geometry('POINT', srid=4326), nullable=False)
 
     # Optionally link to a Location if the event is at a known location
-    location_id = Column(Integer, ForeignKey("locations.id"), nullable=True, index=True)
+    location_id = Column(Integer, ForeignKey("tripflow.locations.id"), nullable=True, index=True)
 
     # Details
     price = Column(Float)
@@ -67,6 +67,12 @@ class Event(Base, TimestampMixin):
 
     # Categorization
     tags = Column(ARRAY(String), default=[], index=True)
+
+    # Additional metadata from source
+    organizer = Column(String)
+    event_type = Column(String)  # Original event type from source
+    themes = Column(ARRAY(String), default=[])  # Themes/topics
+    source = Column(String, default='manual')  # 'uitinvlaanderen', 'manual', etc.
 
     # Status
     active = Column(Boolean, default=True, index=True)

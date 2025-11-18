@@ -42,8 +42,28 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
+
+
+class UserFavorite(Base):
+    """
+    User favorites model for discovery mode
+    Maps users to their favorited events
+    """
+    __tablename__ = "user_favorites"
+    __table_args__ = {'schema': 'tripflow'}
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("tripflow.users.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_id = Column(Integer, ForeignKey("tripflow.events.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<UserFavorite(id={self.id}, user_id={self.user_id}, event_id={self.event_id})>"
 
 
 # Note: UserPreference model removed - not in tripflow schema
