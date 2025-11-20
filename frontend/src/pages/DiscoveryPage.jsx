@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import BottomSheet from '../components/BottomSheet';
 import EventCard from '../components/EventCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import FilterSidebar from '../components/FilterSidebar';
 import discoveryService from '../services/discoveryService';
 import { useAuth } from '../context/AuthContext';
 import './DiscoveryPage.css';
@@ -19,6 +20,9 @@ L.Icon.Default.mergeOptions({
 
 // Create custom event marker icon with category color and SVG icon
 const createEventIcon = (category) => {
+  // Normalize category to lowercase for icon lookup
+  const categoryKey = category ? category.toLowerCase() : 'other';
+
   const iconConfig = {
     festival: {
       color: '#FF6B6B',
@@ -56,13 +60,21 @@ const createEventIcon = (category) => {
       color: '#06D6A0',
       icon: '<path d="M12 2L4 8v4l8 6 8-6V8z"/><path d="M4 12l8 6 8-6"/><path d="M12 14v8"/>'
     },
+    camping: {
+      color: '#2ECC71',
+      icon: '<path d="M12 2L4 8v4l8 6 8-6V8z"/><path d="M4 12l8 6 8-6"/><path d="M12 14v8"/>'
+    },
+    parking: {
+      color: '#3498DB',
+      icon: '<circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/><path d="M8 6h4c2.2 0 4 1.8 4 4s-1.8 4-4 4H8V6zm0 0v12"/>'
+    },
     other: {
       color: '#95A5A6',
       icon: '<circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M23 12h-6M7 12H1m17.7-7.7l-4.2 4.2M7.5 16.5l-4.2 4.2m14.4 0l-4.2-4.2M7.5 7.5L3.3 3.3"/>'
     }
   };
 
-  const config = iconConfig[category] || iconConfig.other;
+  const config = iconConfig[categoryKey] || iconConfig.other;
 
   const svgIcon = `
     <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
@@ -138,10 +150,20 @@ const DiscoveryPage = () => {
 
   // Discovery state
   const [events, setEvents] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchRadius, setSearchRadius] = useState(25); // km
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [freeOnly, setFreeOnly] = useState(false);
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    showEvents: true,
+    showLocations: true,
+    selectedCategories: [],
+    selectedEventTypes: [],
+    searchText: '',
+    radiusKm: 25,
+    freeOnly: false
+  });
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(true); // Open by default on desktop
 
   // UI state
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -206,7 +228,7 @@ const DiscoveryPage = () => {
     );
   }, []);
 
-  // Search for events
+  // Search for events and locations
   const searchEvents = useCallback(async () => {
     // Use the current visible map center, or fall back to user location, or default
     const searchLocation = currentMapCenter || userLocation || {
@@ -217,24 +239,34 @@ const DiscoveryPage = () => {
     setLoading(true);
 
     try {
+      // Build item_types array based on filters
+      const item_types = [];
+      if (filters.showEvents) item_types.push('events');
+      if (filters.showLocations) item_types.push('locations');
+
       const response = await discoveryService.searchEvents({
         latitude: searchLocation.lat,
         longitude: searchLocation.lng,
-        radius_km: searchRadius,
-        categories: selectedCategories.length > 0 ? selectedCategories : null,
-        free_only: freeOnly,
-        limit: 100
+        radius_km: filters.radiusKm,
+        item_types: item_types.length > 0 ? item_types : ['events', 'locations'],
+        categories: filters.selectedCategories.length > 0 ? filters.selectedCategories : null,
+        event_types: filters.selectedEventTypes.length > 0 ? filters.selectedEventTypes : null,
+        search_text: filters.searchText.trim() || null,
+        free_only: filters.freeOnly,
+        limit: 200
       });
 
       setEvents(response.events || []);
+      setLocations(response.locations || []);
       setSheetOpen(true);
     } catch (error) {
-      console.error('Error searching events:', error);
+      console.error('Error searching:', error);
       setEvents([]);
+      setLocations([]);
     } finally {
       setLoading(false);
     }
-  }, [currentMapCenter, userLocation, searchRadius, selectedCategories, freeOnly, defaultCenter]);
+  }, [currentMapCenter, userLocation, filters, defaultCenter]);
 
   // Load favorite IDs
   const loadFavorites = useCallback(async () => {
@@ -294,16 +326,45 @@ const DiscoveryPage = () => {
     }
   }, [locationPermission, userLocation]); // Don't include searchEvents to avoid loop
 
+  // Auto-search when filters change
+  useEffect(() => {
+    if (currentMapCenter || userLocation) {
+      searchEvents();
+    }
+  }, [filters]); // Trigger search whenever filters change
+
   return (
     <div className="discovery-page">
+      {/* Filter Sidebar */}
+      <FilterSidebar
+        filters={filters}
+        onFilterChange={setFilters}
+        isOpen={filterSidebarOpen}
+        onToggle={() => setFilterSidebarOpen(!filterSidebarOpen)}
+        eventsCount={events.length}
+        loading={loading}
+      />
+
       {/* Map Container */}
-      <div className="discovery-map">
+      <div className={`discovery-map ${filterSidebarOpen ? 'with-sidebar' : ''}`}>
         {/* Center marker to show search location */}
         <div className="map-center-marker">
           <div className="map-center-crosshair">
             <div className="map-center-dot"></div>
           </div>
         </div>
+
+        {/* Location permission banner */}
+        {locationError && (
+          <div className="location-error-banner">
+            ⚠️ {locationError}
+            {locationPermission !== 'granted' && (
+              <button className="location-retry-btn" onClick={requestLocation}>
+                Try Again
+              </button>
+            )}
+          </div>
+        )}
 
         <MapContainer
           center={mapCenter}
@@ -352,65 +413,6 @@ const DiscoveryPage = () => {
             </Marker>
           ))}
         </MapContainer>
-      </div>
-
-      {/* Control Panel */}
-      <div className="discovery-controls">
-        <div className="controls-header">
-          <h2>🔍 Discover Events</h2>
-
-          {locationPermission !== 'granted' && (
-            <button className="location-btn" onClick={requestLocation}>
-              📍 Enable Location
-            </button>
-          )}
-        </div>
-
-        <div className="controls-filters">
-          <div className="filter-group">
-            <label>Radius:</label>
-            <select
-              value={searchRadius}
-              onChange={(e) => setSearchRadius(Number(e.target.value))}
-            >
-              <option value={10}>10 km</option>
-              <option value={25}>25 km</option>
-              <option value={50}>50 km</option>
-              <option value={100}>100 km</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={freeOnly}
-                onChange={(e) => setFreeOnly(e.target.checked)}
-              />
-              Free events only
-            </label>
-          </div>
-
-          <button
-            className="search-btn"
-            onClick={searchEvents}
-            disabled={loading}
-          >
-            {loading ? 'Searching...' : '🔎 Search'}
-          </button>
-        </div>
-
-        {locationError && (
-          <div className="location-error">
-            ⚠️ {locationError}
-          </div>
-        )}
-
-        {events.length > 0 && (
-          <div className="events-summary">
-            Found {events.length} events nearby
-          </div>
-        )}
       </div>
 
       {/* Loading Overlay */}

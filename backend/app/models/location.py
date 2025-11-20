@@ -1,24 +1,31 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, Enum as SQLEnum, DateTime
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from geoalchemy2 import Geometry
 from enum import Enum
 from .base import Base, TimestampMixin
 
 
 class LocationType(str, Enum):
-    CAMPSITE = "campsite"
-    PARKING = "parking"
-    REST_AREA = "rest_area"
-    ATTRACTION = "attraction"
-    POI = "poi"
-    EVENT_VENUE = "event_venue"
+    CAMPSITE = "CAMPSITE"
+    PARKING = "PARKING"
+    REST_AREA = "REST_AREA"
+    SERVICE_AREA = "SERVICE_AREA"
+    POI = "POI"
+    EVENT = "EVENT"
+    ATTRACTION = "ATTRACTION"
+    RESTAURANT = "RESTAURANT"
+    HOTEL = "HOTEL"
+    ACTIVITY = "ACTIVITY"
 
 
 class LocationSource(str, Enum):
     PARK4NIGHT = "park4night"
     CAMPERCONTACT = "campercontact"
-    LOCAL_SITES = "local_sites"
+    UITINVLAANDEREN = "uitinvlaanderen"
+    OPENSTREETMAP = "openstreetmap"
+    GOOGLE_PLACES = "google_places"
     MANUAL = "manual"
+    OTHER = "other"
 
 
 class Location(Base, TimestampMixin):
@@ -28,59 +35,72 @@ class Location(Base, TimestampMixin):
 
     # External reference
     external_id = Column(String, index=True, nullable=True)  # ID from source database
-    source = Column(SQLEnum(LocationSource), nullable=False, index=True)
+    source = Column(String, nullable=False, index=True)  # Use String instead of Enum to avoid PostgreSQL enum issues
 
     # Basic info
     name = Column(String, nullable=False, index=True)
     description = Column(Text)
-    location_type = Column(SQLEnum(LocationType), nullable=False, index=True)
+    location_type = Column(String, nullable=False, index=True)  # Use String instead of Enum
 
     # Geographic data
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     geom = Column(Geometry('POINT', srid=4326), nullable=False)  # PostGIS geometry
+    altitude = Column(Integer)
 
     address = Column(String)
     city = Column(String, index=True)
     region = Column(String, index=True)
     country = Column(String, index=True)
+    country_code = Column(String)
     postal_code = Column(String)
 
-    # Amenities and features
-    amenities = Column(ARRAY(String), default=[])  # ["wifi", "water", "electricity", "toilet", "shower"]
-    features = Column(JSON, default={})  # Flexible structure for location-specific features
+    # Amenities and features (JSONB in DB)
+    amenities = Column(JSONB)
+    features = Column(JSONB)
+    restrictions = Column(JSONB)
 
     # Ratings and reviews
-    rating = Column(Float)  # Average rating
+    rating = Column(Float)
+    rating_count = Column(Integer)
     review_count = Column(Integer, default=0)
+    popularity_score = Column(Float)
 
-    # Practical information
-    price = Column(Float)  # Price per night or visit
-    currency = Column(String, default="EUR")
-    capacity = Column(Integer)  # Number of spots/spaces
+    # Practical information (matches DB schema)
+    price_type = Column(String)  # 'free', 'paid', 'donation', etc.
+    price_min = Column(Float)
+    price_max = Column(Float)
+    price_currency = Column(String, default="EUR")
+    price_info = Column(Text)
+    capacity_total = Column(Integer)
+    capacity_available = Column(Integer)
 
     # Availability
-    open_year_round = Column(Boolean, default=False)
-    opening_hours = Column(JSON)  # Flexible structure for opening hours
+    is_24_7 = Column(Boolean, default=False)
+    opening_hours = Column(JSONB)  # Flexible structure for opening hours
+    seasonal_info = Column(Text)
 
     # Contact
     phone = Column(String)
     email = Column(String)
     website = Column(String)
 
-    # Media
-    images = Column(ARRAY(String), default=[])  # URLs to images
+    # Media (JSONB in DB)
+    images = Column(JSONB)
+    main_image_url = Column(String)
 
     # Categorization (for recommendations)
-    tags = Column(ARRAY(String), default=[], index=True)  # ["nature", "beach", "family-friendly", "hiking"]
-    categories = Column(ARRAY(String), default=[])  # ["outdoor", "cultural", "sports"]
+    tags = Column(ARRAY(String), default=[])  # ["nature", "beach", "family-friendly", "hiking"]
 
     # Status
-    active = Column(Boolean, default=True, index=True)
-    verified = Column(Boolean, default=False)
+    active = Column('is_active', Boolean, default=True, index=True)  # Maps to is_active in DB
+    verified = Column('is_verified', Boolean, default=False)  # Maps to is_verified in DB
+    is_featured = Column(Boolean, default=False)
+    requires_booking = Column(Boolean, default=False)
 
     # Sync metadata
-    last_synced_at = Column(DateTime)
+    raw_data = Column(JSONB)
+    last_verified_at = Column(DateTime)
 
     def __repr__(self):
         return f"<Location(id={self.id}, name='{self.name}', type={self.location_type})>"

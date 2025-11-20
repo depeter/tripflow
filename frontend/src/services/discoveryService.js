@@ -12,7 +12,10 @@ const discoveryService = {
    * @param {number} params.latitude - Latitude
    * @param {number} params.longitude - Longitude
    * @param {number} params.radius_km - Search radius in kilometers (default: 25)
+   * @param {Array<string>} params.item_types - Filter by item types: 'events', 'locations' (optional)
    * @param {Array<string>} params.categories - Filter by categories (optional)
+   * @param {Array<string>} params.event_types - Filter by event types (optional)
+   * @param {string} params.search_text - Search text for name/description (optional)
    * @param {string} params.start_date - ISO datetime string for start filter (optional)
    * @param {string} params.end_date - ISO datetime string for end filter (optional)
    * @param {boolean} params.free_only - Only show free events (optional)
@@ -25,7 +28,10 @@ const discoveryService = {
         latitude: params.latitude,
         longitude: params.longitude,
         radius_km: params.radius_km || 25,
+        item_types: params.item_types || null,
         categories: params.categories || null,
+        event_types: params.event_types || null,
+        search_text: params.search_text || null,
         start_date: params.start_date || null,
         end_date: params.end_date || null,
         free_only: params.free_only || false,

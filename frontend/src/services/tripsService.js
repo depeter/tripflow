@@ -245,6 +245,90 @@ export const getLocation = async (locationId) => {
   }
 };
 
+/**
+ * Find nearby locations (e.g., park4night locations)
+ * @param {Object} params - Search parameters
+ * @param {number} params.latitude - Center latitude
+ * @param {number} params.longitude - Center longitude
+ * @param {number} params.radius_km - Search radius in km (default: 50)
+ * @param {string[]} params.location_types - Location types to filter (optional)
+ * @param {number} params.limit - Max results (default: 50)
+ */
+export const getNearbyLocations = async (params) => {
+  try {
+    const response = await apiClient.post('/locations/nearby', {
+      latitude: params.latitude,
+      longitude: params.longitude,
+      radius_km: params.radius_km || 50,
+      location_types: params.location_types || [],
+      limit: params.limit || 50
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get nearby locations:', error);
+    throw error;
+  }
+};
+
+// ============ Events/Discovery API ============
+
+/**
+ * Discover events near a location
+ * @param {Object} params - Search parameters
+ * @param {number} params.latitude - Center latitude
+ * @param {number} params.longitude - Center longitude
+ * @param {number} params.radius_km - Search radius in km (default: 25)
+ * @param {string[]} params.categories - Event categories to filter (optional)
+ * @param {Date} params.start_date - Only events after this date (optional)
+ * @param {Date} params.end_date - Only events before this date (optional)
+ * @param {boolean} params.free_only - Only show free events (default: false)
+ * @param {number} params.limit - Max results (default: 50)
+ */
+export const discoverEvents = async (params) => {
+  try {
+    const response = await apiClient.post('/discover', {
+      latitude: params.latitude,
+      longitude: params.longitude,
+      radius_km: params.radius_km || 25,
+      categories: params.categories || null,
+      start_date: params.start_date || null,
+      end_date: params.end_date || null,
+      free_only: params.free_only || false,
+      limit: params.limit || 50
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to discover events:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get available event categories
+ */
+export const getEventCategories = async () => {
+  try {
+    const response = await apiClient.get('/discover/categories');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get event categories:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get discovery statistics
+ */
+export const getDiscoveryStats = async () => {
+  try {
+    const response = await apiClient.get('/discover/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get discovery stats:', error);
+    throw error;
+  }
+};
+
 export default {
   // Recommendations
   getRecommendations,
@@ -263,5 +347,11 @@ export default {
 
   // Locations
   searchLocations,
-  getLocation
+  getLocation,
+  getNearbyLocations,
+
+  // Events/Discovery
+  discoverEvents,
+  getEventCategories,
+  getDiscoveryStats
 };

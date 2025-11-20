@@ -6,16 +6,16 @@ from .base import Base, TimestampMixin
 
 
 class EventCategory(str, Enum):
-    FESTIVAL = "festival"
-    CONCERT = "concert"
-    SPORTS = "sports"
-    MARKET = "market"
-    EXHIBITION = "exhibition"
-    THEATER = "theater"
-    CULTURAL = "cultural"
-    FOOD = "food"
-    OUTDOOR = "outdoor"
-    OTHER = "other"
+    FESTIVAL = "FESTIVAL"
+    CONCERT = "CONCERT"
+    SPORTS = "SPORTS"
+    MARKET = "MARKET"
+    EXHIBITION = "EXHIBITION"
+    THEATER = "THEATER"
+    CULTURAL = "CULTURAL"
+    FOOD = "FOOD"
+    OUTDOOR = "OUTDOOR"
+    OTHER = "OTHER"
 
 
 class Event(Base, TimestampMixin):
@@ -30,7 +30,7 @@ class Event(Base, TimestampMixin):
     # Basic info
     name = Column(String, nullable=False, index=True)
     description = Column(Text)
-    category = Column(SQLEnum(EventCategory), nullable=False, index=True)
+    category = Column(String, nullable=False, index=True)  # Changed from SQLEnum to String to match VARCHAR in DB
 
     # Dates and times
     start_datetime = Column(DateTime, nullable=False, index=True)

@@ -1,21 +1,50 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTripContext } from '../context/TripContext';
 import LocationCard from '../components/LocationCard';
+import EventCard from '../components/EventCard';
 import MapView from '../components/MapView';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getRecommendations } from '../services/tripsService';
+import { getRecommendations, getNearbyLocations, discoverEvents } from '../services/tripsService';
 import { geocodeAddress, reverseGeocode, debounce } from '../services/geocodingService';
 import './Step4_Recommendations.css';
 
 const Step4_Recommendations = ({ onNext, onBack }) => {
   const { tripData, updateTripData } = useTripContext();
+
+  // Tab system: 'locations' or 'events'
+  const [activeTab, setActiveTab] = useState('locations');
+
+  // Locations data
   const [recommendations, setRecommendations] = useState([]);
+  const [park4nightLocations, setPark4nightLocations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPark4Night, setIsLoadingPark4Night] = useState(true);
+
+  // Events data
+  const [events, setEvents] = useState([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+
+  // Advanced filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [locationFilters, setLocationFilters] = useState({
+    types: [],
+    amenities: [],
+    priceRange: 'all', // 'free', 'low', 'medium', 'high', 'all'
+    minRating: 0
+  });
+  const [eventFilters, setEventFilters] = useState({
+    categories: [],
+    freeOnly: false,
+    dateRange: 'upcoming' // 'upcoming', 'this_week', 'this_month', 'custom'
+  });
+
+  // Legacy filters (for backwards compatibility)
   const [filters, setFilters] = useState({
     type: '',
     minRating: 0
   });
   const [sortBy, setSortBy] = useState('match');
+
   const [selectedLocations, setSelectedLocations] = useState(
     tripData.selected_waypoints || []
   );
@@ -28,9 +57,14 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
-    loadRecommendations();
+    if (activeTab === 'locations') {
+      loadRecommendations();
+      loadPark4NightLocations();
+    } else if (activeTab === 'events') {
+      loadEvents();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy]);
+  }, [filters, sortBy, activeTab, locationFilters, eventFilters]);
 
   const loadRecommendations = async () => {
     setIsLoading(true);
@@ -55,6 +89,103 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
       setRecommendations([]);
     }
     setIsLoading(false);
+  };
+
+  const loadPark4NightLocations = async () => {
+    if (!tripData.start_coordinates) {
+      setIsLoadingPark4Night(false);
+      return;
+    }
+
+    setIsLoadingPark4Night(true);
+    try {
+      // Fetch park4night locations near the start point
+      const params = {
+        latitude: tripData.start_coordinates.lat,
+        longitude: tripData.start_coordinates.lng,
+        radius_km: tripData.max_distance_km || 100,
+        location_types: filters.type ? [filters.type] : [],
+        limit: 100
+      };
+
+      const results = await getNearbyLocations(params);
+
+      // Transform backend location format to frontend format
+      const transformedResults = results.map(loc => ({
+        id: loc.id,
+        name: loc.name,
+        type: loc.location_type,
+        location_type: loc.location_type,
+        coordinates: {
+          lat: loc.latitude,
+          lng: loc.longitude
+        },
+        rating: loc.rating || 0,
+        match_score: 80, // Default match score for park4night
+        description: loc.description || '',
+        tags: loc.tags || [],
+        price_per_night: loc.price || 0,
+        amenities: loc.amenities || [],
+        source: loc.source || 'park4night',
+        distance_km: loc.distance_km || 0
+      }));
+
+      setPark4nightLocations(transformedResults);
+    } catch (error) {
+      console.error('Error loading park4night locations:', error);
+      setPark4nightLocations([]);
+    }
+    setIsLoadingPark4Night(false);
+  };
+
+  const loadEvents = async () => {
+    if (!tripData.start_coordinates) {
+      setIsLoadingEvents(false);
+      return;
+    }
+
+    setIsLoadingEvents(true);
+    try {
+      // Fetch events near the start point
+      const params = {
+        latitude: tripData.start_coordinates.lat,
+        longitude: tripData.start_coordinates.lng,
+        radius_km: tripData.max_distance_km || 50,
+        categories: eventFilters.categories.length > 0 ? eventFilters.categories : null,
+        free_only: eventFilters.freeOnly,
+        limit: 100
+      };
+
+      // Add date range filtering
+      if (eventFilters.dateRange !== 'upcoming') {
+        const now = new Date();
+        if (eventFilters.dateRange === 'this_week') {
+          params.end_date = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        } else if (eventFilters.dateRange === 'this_month') {
+          params.end_date = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        }
+      }
+
+      const response = await discoverEvents(params);
+
+      // Transform events to include required fields for cards
+      const transformedEvents = response.events.map(evt => ({
+        ...evt,
+        id: evt.id,
+        coordinates: {
+          lat: evt.latitude,
+          lng: evt.longitude
+        },
+        type: 'event',
+        match_score: 85 // Default match score for events
+      }));
+
+      setEvents(transformedEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      setEvents([]);
+    }
+    setIsLoadingEvents(false);
   };
 
   // Search for locations
@@ -177,20 +308,55 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
       });
     }
 
-    // Combine recommendations and custom locations
-    const allLocations = [...recommendations, ...customLocations];
+    // Combine recommendations, park4night locations, custom locations, and events
+    const allLocations = [...recommendations, ...park4nightLocations, ...customLocations];
+    const allItems = activeTab === 'locations' ? allLocations : [...allLocations, ...events];
 
-    // Location markers
-    allLocations.forEach((location, idx) => {
-      const isSelected = isLocationSelected(location.id);
+    // Location and event markers with type-specific icons
+    allItems.forEach((item, idx) => {
+      const isSelected = isLocationSelected(item.id);
+      const locationType = item.location_type || item.type;
+
+      // Create popup content with more details
+      let popupContent = item.name;
+
+      if (item.type === 'event') {
+        // Event popup
+        popupContent += ` (${item.category})`;
+        if (item.start_datetime) {
+          const date = new Date(item.start_datetime);
+          popupContent += `<br/>📅 ${date.toLocaleDateString()}`;
+        }
+        if (item.free) {
+          popupContent += `<br/>💰 FREE`;
+        } else if (item.price) {
+          popupContent += `<br/>💰 ${item.currency}${item.price}`;
+        }
+      } else {
+        // Location popup
+        if (item.source === 'park4night') {
+          popupContent += ' (Park4Night)';
+        } else if (item.type === 'custom') {
+          popupContent += ' (Custom)';
+        } else if (item.match_score) {
+          popupContent += ` - ${item.match_score}% match`;
+        }
+        if (item.rating) {
+          popupContent += `<br/>⭐ ${item.rating.toFixed(1)}`;
+        }
+      }
+
+      if (item.distance_km) {
+        popupContent += `<br/>📍 ${item.distance_km.toFixed(1)} km away`;
+      }
+
       markers.push({
-        id: `loc-${location.id}`,
-        position: [location.coordinates.lat, location.coordinates.lng],
-        popup: location.type === 'custom'
-          ? `${location.name} (Custom)`
-          : `${location.name} - ${location.match_score}% match`,
-        numbered: isSelected,
-        number: isSelected ? selectedLocations.findIndex(l => l.id === location.id) + 1 : undefined,
+        id: `loc-${item.id}`,
+        position: [item.coordinates.lat, item.coordinates.lng],
+        popup: popupContent,
+        locationType: item.type === 'event' ? 'event_venue' : (locationType === 'custom' ? 'custom' : locationType),
+        isSelected: isSelected,
+        selectionNumber: isSelected ? selectedLocations.findIndex(l => l.id === item.id) + 1 : undefined,
         draggable: false
       });
     });
@@ -210,11 +376,31 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
         <div className="left-panel">
           <div className="panel-header">
             <div>
-              <h2>Find Locations</h2>
+              <h2>Discover</h2>
               <p className="recommendations-subtitle">
-                Search for a place, click on the map, or browse <strong>{recommendations.length} recommendations</strong>
+                Find {activeTab === 'locations' ? 'campsites, parking, and attractions' : 'events and activities'} near your route
               </p>
             </div>
+          </div>
+
+          {/* Discovery Tabs */}
+          <div className="discovery-tabs">
+            <button
+              className={`discovery-tab ${activeTab === 'locations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('locations')}
+            >
+              <span className="tab-icon">📍</span>
+              Locations
+              <span className="tab-count">{recommendations.length + park4nightLocations.length + customLocations.length}</span>
+            </button>
+            <button
+              className={`discovery-tab ${activeTab === 'events' ? 'active' : ''}`}
+              onClick={() => setActiveTab('events')}
+            >
+              <span className="tab-icon">🎉</span>
+              Events
+              <span className="tab-count">{events.length}</span>
+            </button>
           </div>
 
           {/* Location Search */}
@@ -309,9 +495,9 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
 
           {/* Recommendations List */}
           <div className="recommendations-list">
-            {isLoading ? (
+            {(activeTab === 'locations' && (isLoading || isLoadingPark4Night)) || (activeTab === 'events' && isLoadingEvents) ? (
               <div className="loading-container">
-                <LoadingSpinner message="Finding perfect locations for you..." />
+                <LoadingSpinner message={activeTab === 'locations' ? "Finding perfect locations for you..." : "Discovering events near you..."} />
               </div>
             ) : (
               <>
@@ -332,14 +518,29 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
                   </>
                 )}
 
+                {/* Park4Night Locations */}
+                {park4nightLocations.length > 0 && (
+                  <>
+                    <div className="section-divider">
+                      <span className="divider-text">Park4Night Locations ({park4nightLocations.length})</span>
+                    </div>
+                    {park4nightLocations.slice(0, 20).map(location => (
+                      <LocationCard
+                        key={location.id}
+                        location={location}
+                        onAddToTrip={handleAddToTrip}
+                        isSelected={isLocationSelected(location.id)}
+                      />
+                    ))}
+                  </>
+                )}
+
                 {/* Recommendations */}
                 {recommendations.length > 0 && (
                   <>
-                    {customLocations.length > 0 && (
-                      <div className="section-divider">
-                        <span className="divider-text">Recommended Locations ({recommendations.length})</span>
-                      </div>
-                    )}
+                    <div className="section-divider">
+                      <span className="divider-text">Recommended Locations ({recommendations.length})</span>
+                    </div>
                     {recommendations.map(location => (
                       <LocationCard
                         key={location.id}
@@ -351,12 +552,36 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
                   </>
                 )}
 
+                {/* Events */}
+                {activeTab === 'events' && events.length > 0 && (
+                  <>
+                    <div className="section-divider">
+                      <span className="divider-text">Events Near You ({events.length})</span>
+                    </div>
+                    {events.slice(0, 30).map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onAddToTrip={handleAddToTrip}
+                        isSelected={isLocationSelected(event.id)}
+                      />
+                    ))}
+                  </>
+                )}
+
                 {/* No Results */}
-                {recommendations.length === 0 && customLocations.length === 0 && (
+                {activeTab === 'locations' && recommendations.length === 0 && park4nightLocations.length === 0 && customLocations.length === 0 && (
                   <div className="no-results">
                     <span className="no-results-icon">🔍</span>
                     <h3>No locations found</h3>
                     <p>Search for a location, click on the map, or adjust your filters</p>
+                  </div>
+                )}
+                {activeTab === 'events' && events.length === 0 && (
+                  <div className="no-results">
+                    <span className="no-results-icon">🎉</span>
+                    <h3>No events found</h3>
+                    <p>Try adjusting your search radius or date range</p>
                   </div>
                 )}
               </>
@@ -372,6 +597,7 @@ const Step4_Recommendations = ({ onNext, onBack }) => {
               zoom={6}
               markers={markers}
               onMapClick={handleMapClick}
+              showLegend={true}
             />
           </div>
 

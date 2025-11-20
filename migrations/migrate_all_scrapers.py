@@ -289,29 +289,29 @@ class UniversalScraperMigration:
             cursor.execute("""
                 INSERT INTO tripflow.events (
                     location_id, external_id, source,
-                    name, description, event_type,
-                    start_date, end_date,
+                    name, description, category,
+                    start_datetime, end_datetime,
                     organizer, themes,
-                    capacity, booking_url,
-                    price_min, price_max,
-                    is_cancelled, is_sold_out,
+                    booking_url,
+                    price,
+                    cancelled,
                     created_at, updated_at
                 ) VALUES (
                     %(location_id)s, %(external_id)s, %(source)s,
-                    %(name)s, %(description)s, %(event_type)s,
-                    %(start_date)s, %(end_date)s,
+                    %(name)s, %(description)s, %(category)s,
+                    %(start_datetime)s, %(end_datetime)s,
                     %(organizer)s, %(themes)s,
-                    %(capacity)s, %(booking_url)s,
-                    %(price_min)s, %(price_max)s,
-                    %(is_cancelled)s, %(is_sold_out)s,
+                    %(booking_url)s,
+                    %(price)s,
+                    %(cancelled)s,
                     NOW(), NOW()
                 )
-                ON CONFLICT (external_id, source)
+                ON CONFLICT (external_id)
                 DO UPDATE SET
                     name = EXCLUDED.name,
                     description = EXCLUDED.description,
-                    start_date = EXCLUDED.start_date,
-                    end_date = EXCLUDED.end_date,
+                    start_datetime = EXCLUDED.start_datetime,
+                    end_datetime = EXCLUDED.end_datetime,
                     updated_at = NOW()
             """, {
                 'location_id': data.get('location_id'),
@@ -319,17 +319,14 @@ class UniversalScraperMigration:
                 'source': data.get('source'),
                 'name': data.get('name'),
                 'description': data.get('description'),
-                'event_type': data.get('event_type'),
-                'start_date': data.get('start_date'),
-                'end_date': data.get('end_date'),
+                'category': data.get('event_type', 'Other'),
+                'start_datetime': data.get('start_date'),
+                'end_datetime': data.get('end_date'),
                 'organizer': data.get('organizer'),
                 'themes': data.get('themes', []),
-                'capacity': data.get('capacity'),
                 'booking_url': data.get('booking_url'),
-                'price_min': data.get('price_min'),
-                'price_max': data.get('price_max'),
-                'is_cancelled': data.get('is_cancelled', False),
-                'is_sold_out': data.get('is_sold_out', False)
+                'price': data.get('price_min'),
+                'cancelled': data.get('is_cancelled', False)
             })
 
         except Exception as e:
@@ -423,7 +420,7 @@ def main():
         'host': args.tripflow_host,
         'port': args.tripflow_port,
         'database': 'tripflow',
-        'user': 'tripflow',
+        'user': 'postgres',
         'password': 'tripflow'
     }
 

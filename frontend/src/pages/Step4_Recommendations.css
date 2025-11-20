@@ -434,3 +434,209 @@
     order: -1;
   }
 }
+
+/* Discovery Tabs */
+.discovery-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--gray-100);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  margin: 1rem 2rem;
+}
+
+.discovery-tab {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.discovery-tab:hover {
+  color: var(--gray-900);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.discovery-tab.active {
+  background: white;
+  color: var(--gray-900);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.discovery-tab .tab-icon {
+  font-size: 1.125rem;
+}
+
+.discovery-tab .tab-count {
+  background: var(--gray-200);
+  color: var(--gray-600);
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.discovery-tab.active .tab-count {
+  background: var(--primary-green);
+  color: white;
+}
+
+/* Advanced Filters */
+.advanced-filters {
+  padding: 1rem 2rem;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.filters-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.filters-toggle:hover {
+  color: var(--gray-900);
+}
+
+.filters-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filters-toggle-icon {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.filters-toggle-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.filters-content {
+  padding-top: 1rem;
+}
+
+.filters-section {
+  margin-bottom: 1.5rem;
+}
+
+.filters-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-500);
+  margin-bottom: 0.75rem;
+}
+
+.filters-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.filter-checkbox:hover {
+  background: white;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-green);
+}
+
+.filter-checkbox label {
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.filter-checkbox-icon {
+  font-size: 1rem;
+}
+
+.filters-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.filters-actions .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filters-actions .btn-primary {
+  background: var(--primary-green);
+  color: white;
+  border: none;
+}
+
+.filters-actions .btn-primary:hover {
+  background: #059669;
+}
+
+.filters-actions .btn-outline {
+  background: transparent;
+  color: var(--gray-600);
+  border: 1px solid var(--gray-300);
+}
+
+.filters-actions .btn-outline:hover {
+  background: white;
+  color: var(--gray-900);
+  border-color: var(--gray-400);
+}
+
+.active-filters-count {
+  background: var(--primary-green);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+}

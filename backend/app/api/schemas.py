@@ -198,7 +198,7 @@ class EventResponse(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
-    category: EventCategoryEnum
+    category: str  # Changed from EventCategoryEnum to str to match DB VARCHAR
     start_datetime: datetime
     end_datetime: Optional[datetime] = None
     all_day: bool
@@ -228,15 +228,46 @@ class DiscoverySearchParams(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     radius_km: int = Field(25, ge=1, le=200, description="Search radius in kilometers")
-    categories: Optional[List[EventCategoryEnum]] = Field(None, description="Filter by event categories")
+    item_types: Optional[List[str]] = Field(["events", "locations"], description="Types to show: events, locations, or both")
+    categories: Optional[List[str]] = Field(None, description="Filter by event categories")
+    event_types: Optional[List[str]] = Field(None, description="Filter by event types")
+    search_text: Optional[str] = Field(None, description="Search text for name/description/themes")
     start_date: Optional[datetime] = Field(None, description="Only events after this date")
     end_date: Optional[datetime] = Field(None, description="Only events before this date")
     free_only: bool = Field(False, description="Only show free events")
-    limit: int = Field(50, ge=1, le=200)
+    limit: int = Field(200, ge=1, le=500, description="Max results per type")
+
+
+class LocationDiscoveryResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    location_type: str
+    latitude: float
+    longitude: float
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    rating: Optional[float] = None
+    rating_count: Optional[int] = None
+    price_type: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    website: Optional[str] = None
+    main_image_url: Optional[str] = None
+    images: Optional[Any] = None  # Can be list or dict in JSONB
+    tags: List[str] = []
+    source: str
+    distance_km: Optional[float] = None
+    item_type: str = "location"
+
+    class Config:
+        from_attributes = True
 
 
 class DiscoveryResponse(BaseModel):
-    events: List[EventResponse]
+    events: List[EventResponse] = []
+    locations: List[LocationDiscoveryResponse] = []
     total_count: int
     search_center: Dict[str, float]  # {"latitude": x, "longitude": y}
     radius_km: int

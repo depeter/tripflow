@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './MapView.css';
+import './LocationIcons.css';
+import { createLocationIcon, createNumberedIcon } from './LocationIcons';
 
 // Fix for default marker icons in React Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -12,15 +14,34 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// Custom numbered marker icon
-const createNumberedIcon = (number) => {
-  return L.divIcon({
-    className: 'numbered-marker',
-    html: `<div class="marker-pin"><span>${number}</span></div>`,
-    iconSize: [30, 42],
-    iconAnchor: [15, 42],
-    popupAnchor: [0, -42]
-  });
+// MapLegend component to show location types
+const MapLegend = ({ show = true }) => {
+  if (!show) return null;
+
+  const legendItems = [
+    { type: 'campsite', emoji: '⛺', color: '#10B981', label: 'Campsite' },
+    { type: 'parking', emoji: '🅿️', color: '#3B82F6', label: 'Parking' },
+    { type: 'service_area', emoji: '🚰', color: '#8B5CF6', label: 'Service' },
+    { type: 'rest_area', emoji: '🛋️', color: '#F59E0B', label: 'Rest Area' },
+    { type: 'attraction', emoji: '🎯', color: '#EF4444', label: 'Attraction' },
+    { type: 'poi', emoji: '📍', color: '#EC4899', label: 'POI' }
+  ];
+
+  return (
+    <div className="map-legend">
+      <div className="map-legend-title">Location Types</div>
+      <div className="map-legend-items">
+        {legendItems.map(item => (
+          <div key={item.type} className="map-legend-item">
+            <div className="map-legend-icon" style={{ backgroundColor: item.color }}>
+              {item.emoji}
+            </div>
+            <span className="map-legend-label">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 // Component to update map view when bounds change
@@ -68,7 +89,8 @@ const MapView = ({
   circle = null,
   onMarkerDrag = null,
   onMapClick = null,
-  className = ''
+  className = '',
+  showLegend = false
 }) => {
   const mapRef = useRef(null);
 
@@ -132,10 +154,19 @@ const MapView = ({
             }
           };
 
-          // Only add icon prop if we have a custom icon
+          // Determine which icon to use
           if (marker.numbered) {
+            // Numbered waypoint marker
             markerProps.icon = createNumberedIcon(marker.number || index + 1);
+          } else if (marker.locationType) {
+            // Location type marker (park4night, etc.)
+            markerProps.icon = createLocationIcon(
+              marker.locationType,
+              marker.isSelected,
+              marker.isSelected ? marker.selectionNumber : null
+            );
           }
+          // If no icon specified, use default Leaflet marker
 
           return (
             <Marker key={marker.id || index} {...markerProps}>
@@ -168,6 +199,9 @@ const MapView = ({
           />
         )}
       </MapContainer>
+
+      {/* Map Legend */}
+      {showLegend && <MapLegend />}
     </div>
   );
 };
