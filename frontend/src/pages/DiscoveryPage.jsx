@@ -56,6 +56,30 @@ const MapRecenter = ({ center }) => {
   return null;
 };
 
+// Component to track map center when user moves the map
+const MapCenterTracker = ({ onCenterChange }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      onCenterChange({ lat: center.lat, lng: center.lng });
+    };
+
+    // Track initial center
+    handleMoveEnd();
+
+    // Listen for map movement
+    map.on('moveend', handleMoveEnd);
+
+    return () => {
+      map.off('moveend', handleMoveEnd);
+    };
+  }, [map, onCenterChange]);
+
+  return null;
+};
+
 const DiscoveryPage = () => {
   const { user } = useAuth();
 
@@ -79,6 +103,12 @@ const DiscoveryPage = () => {
   // Map state
   const defaultCenter = [51.0543, 3.7174]; // Ghent, Belgium
   const [mapCenter, setMapCenter] = useState(defaultCenter);
+  const [currentMapCenter, setCurrentMapCenter] = useState(null); // Track the current visible map center
+
+  // Handle map center changes when user moves the map
+  const handleMapCenterChange = useCallback((center) => {
+    setCurrentMapCenter(center);
+  }, []);
 
   // Request location permission
   const requestLocation = useCallback(() => {
@@ -130,7 +160,8 @@ const DiscoveryPage = () => {
 
   // Search for events
   const searchEvents = useCallback(async () => {
-    const searchLocation = userLocation || {
+    // Use the current visible map center, or fall back to user location, or default
+    const searchLocation = currentMapCenter || userLocation || {
       lat: defaultCenter[0],
       lng: defaultCenter[1]
     };
@@ -155,7 +186,7 @@ const DiscoveryPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [userLocation, searchRadius, selectedCategories, freeOnly, defaultCenter]);
+  }, [currentMapCenter, userLocation, searchRadius, selectedCategories, freeOnly, defaultCenter]);
 
   // Load favorite IDs
   const loadFavorites = useCallback(async () => {
@@ -219,6 +250,13 @@ const DiscoveryPage = () => {
     <div className="discovery-page">
       {/* Map Container */}
       <div className="discovery-map">
+        {/* Center marker to show search location */}
+        <div className="map-center-marker">
+          <div className="map-center-crosshair">
+            <div className="map-center-dot"></div>
+          </div>
+        </div>
+
         <MapContainer
           center={mapCenter}
           zoom={12}
@@ -231,6 +269,7 @@ const DiscoveryPage = () => {
           />
 
           <MapRecenter center={mapCenter} />
+          <MapCenterTracker onCenterChange={handleMapCenterChange} />
 
           {/* User location marker */}
           {userLocation && (

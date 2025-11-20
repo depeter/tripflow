@@ -14,6 +14,60 @@
   z-index: 1;
 }
 
+/* Map Center Crosshair */
+.map-center-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 400;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-center-crosshair {
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+
+.map-center-crosshair::before,
+.map-center-crosshair::after {
+  content: '';
+  position: absolute;
+  background: #e74c3c;
+  box-shadow: 0 0 0 2px white, 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.map-center-crosshair::before {
+  width: 2px;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.map-center-crosshair::after {
+  height: 2px;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.map-center-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #e74c3c;
+  border: 2px solid white;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 /* Event Marker Styles */
 .event-marker {
   background: transparent;
