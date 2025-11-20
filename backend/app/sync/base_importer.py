@@ -56,6 +56,24 @@ class BaseImporter(ABC):
         """
         pass
 
+    def get_translations(self, row: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """
+        Extract multilingual translations from a source row (optional).
+
+        Args:
+            row: Dictionary representing a row from source database
+
+        Returns:
+            Dictionary mapping language codes to descriptions, e.g.:
+            {
+                'en': 'English description',
+                'nl': 'Dutch description',
+                'fr': 'French description'
+            }
+            Returns None if no translations available.
+        """
+        return None
+
     def fetch_source_data(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Fetch data from source database.
@@ -90,7 +108,7 @@ class BaseImporter(ABC):
         Returns:
             Dictionary with import statistics
         """
-        from app.models import Location, LocationSource
+        from app.models import Location, LocationSource, LocationTranslation
 
         stats = {
             "fetched": 0,
@@ -98,6 +116,7 @@ class BaseImporter(ABC):
             "updated": 0,
             "skipped": 0,
             "errors": 0,
+            "translations": 0,
         }
 
         try:
@@ -126,14 +145,37 @@ class BaseImporter(ABC):
                             for key, value in location_data.items():
                                 setattr(existing, key, value)
                             existing.last_synced_at = datetime.utcnow()
+                            location_obj = existing
                             stats["updated"] += 1
                         else:
                             # Insert new location
                             location_data["source"] = LocationSource[self.source_name.upper()]
                             location_data["last_synced_at"] = datetime.utcnow()
-                            location = Location(**location_data)
-                            self.target_session.add(location)
+                            location_obj = Location(**location_data)
+                            self.target_session.add(location_obj)
                             stats["inserted"] += 1
+
+                        # Flush to get location ID for translations
+                        self.target_session.flush()
+
+                        # Handle translations if available
+                        translations = self.get_translations(row)
+                        if translations and location_obj.id:
+                            # Delete existing translations for this location
+                            self.target_session.query(LocationTranslation).filter(
+                                LocationTranslation.location_id == location_obj.id
+                            ).delete()
+
+                            # Insert new translations
+                            for lang_code, description in translations.items():
+                                if description and description.strip():
+                                    translation = LocationTranslation(
+                                        location_id=location_obj.id,
+                                        language_code=lang_code,
+                                        description=description.strip()
+                                    )
+                                    self.target_session.add(translation)
+                                    stats["translations"] += 1
 
                     except Exception as e:
                         logger.error(f"Error processing row: {e}")

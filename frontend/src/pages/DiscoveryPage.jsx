@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import BottomSheet from '../components/BottomSheet';
+import ResultsPanel from '../components/ResultsPanel';
 import EventCard from '../components/EventCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import FilterSidebar from '../components/FilterSidebar';
@@ -19,7 +19,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Create custom event marker icon with category color and SVG icon
-const createEventIcon = (category) => {
+const createEventIcon = (category, isHighlighted = false) => {
   // Normalize category to lowercase for icon lookup
   const categoryKey = category ? category.toLowerCase() : 'other';
 
@@ -77,15 +77,17 @@ const createEventIcon = (category) => {
   const config = iconConfig[categoryKey] || iconConfig.other;
 
   const svgIcon = `
-    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${isHighlighted ? 50 : 40}" height="${isHighlighted ? 60 : 50}" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg" class="${isHighlighted ? 'marker-highlighted' : ''}">
+      ${isHighlighted ? '<circle cx="20" cy="20" r="22" fill="rgba(52, 152, 219, 0.3)" class="marker-pulse"/>' : ''}
+
       <!-- Shadow -->
       <ellipse cx="20" cy="47" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
 
       <!-- Pin background -->
       <path d="M20 0 C10 0, 2 8, 2 18 C2 28, 20 45, 20 45 C20 45, 38 28, 38 18 C38 8, 30 0, 20 0 Z"
             fill="${config.color}"
-            stroke="white"
-            stroke-width="2"/>
+            stroke="${isHighlighted ? '#3498db' : 'white'}"
+            stroke-width="${isHighlighted ? '3' : '2'}"/>
 
       <!-- Icon -->
       <g transform="translate(8, 6)" fill="white" stroke="white" stroke-width="0.5">
@@ -95,11 +97,11 @@ const createEventIcon = (category) => {
   `;
 
   return L.divIcon({
-    className: 'custom-event-marker',
+    className: `custom-event-marker ${isHighlighted ? 'highlighted' : ''}`,
     html: svgIcon,
-    iconSize: [40, 50],
-    iconAnchor: [20, 50],
-    popupAnchor: [0, -50]
+    iconSize: isHighlighted ? [50, 60] : [40, 50],
+    iconAnchor: isHighlighted ? [25, 60] : [20, 50],
+    popupAnchor: [0, isHighlighted ? -60 : -50]
   });
 };
 
@@ -166,9 +168,11 @@ const DiscoveryPage = () => {
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(true); // Open by default on desktop
 
   // UI state
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [resultsPanelOpen, setResultsPanelOpen] = useState(true); // Open by default on desktop
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [hoveredEvent, setHoveredEvent] = useState(null);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const markerRefs = useRef({});
 
   // Map state
   const defaultCenter = [51.0543, 3.7174]; // Ghent, Belgium
@@ -258,7 +262,7 @@ const DiscoveryPage = () => {
 
       setEvents(response.events || []);
       setLocations(response.locations || []);
-      setSheetOpen(true);
+      setResultsPanelOpen(true);
     } catch (error) {
       console.error('Error searching:', error);
       setEvents([]);
@@ -267,6 +271,20 @@ const DiscoveryPage = () => {
       setLoading(false);
     }
   }, [currentMapCenter, userLocation, filters, defaultCenter]);
+
+  // Handle event hover from results panel
+  const handleEventHover = useCallback((event) => {
+    setHoveredEvent(event);
+  }, []);
+
+  // Handle event click from results panel
+  const handleEventClick = useCallback((event) => {
+    setSelectedEvent(event);
+    // Pan map to the event location
+    if (event) {
+      setMapCenter([event.latitude, event.longitude]);
+    }
+  }, []);
 
   // Load favorite IDs
   const loadFavorites = useCallback(async () => {
@@ -390,54 +408,64 @@ const DiscoveryPage = () => {
           )}
 
           {/* Event markers */}
-          {events.map((event) => (
-            <Marker
-              key={`event-${event.id}`}
-              position={[event.latitude, event.longitude]}
-              icon={createEventIcon(event.category)}
-              eventHandlers={{
-                click: () => setSelectedEvent(event)
-              }}
-            >
-              <Popup>
-                <div className="event-popup">
-                  <strong>{event.name}</strong>
-                  <br />
-                  {event.venue_name && <>{event.venue_name}<br /></>}
-                  <span className="event-popup-category">{event.category}</span>
-                  {event.distance_km && (
-                    <><br />{event.distance_km.toFixed(1)} km away</>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {events.map((event) => {
+            const isHighlighted = hoveredEvent?.id === event.id || selectedEvent?.id === event.id;
+            return (
+              <Marker
+                key={`event-${event.id}`}
+                position={[event.latitude, event.longitude]}
+                icon={createEventIcon(event.category, isHighlighted)}
+                eventHandlers={{
+                  click: () => handleEventClick(event),
+                  mouseover: () => setHoveredEvent(event),
+                  mouseout: () => setHoveredEvent(null)
+                }}
+              >
+                <Popup>
+                  <div className="event-popup">
+                    <strong>{event.name}</strong>
+                    <br />
+                    {event.venue_name && <>{event.venue_name}<br /></>}
+                    <span className="event-popup-category">{event.category}</span>
+                    {event.distance_km && (
+                      <><br />{event.distance_km.toFixed(1)} km away</>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
           {/* Location markers (places like camping/parking) */}
-          {locations.map((location) => (
-            <Marker
-              key={`location-${location.id}`}
-              position={[location.latitude, location.longitude]}
-              icon={createEventIcon(location.category || location.location_type)}
-              eventHandlers={{
-                click: () => setSelectedEvent(location)
-              }}
-            >
-              <Popup>
-                <div className="event-popup">
-                  <strong>{location.name}</strong>
-                  <br />
-                  {location.address && <>{location.address}<br /></>}
-                  <span className="event-popup-category">
-                    {location.category || location.location_type || 'Place'}
-                  </span>
-                  {location.distance_km && (
-                    <><br />{location.distance_km.toFixed(1)} km away</>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {locations.map((location) => {
+            const isHighlighted = hoveredEvent?.id === location.id || selectedEvent?.id === location.id;
+            return (
+              <Marker
+                key={`location-${location.id}`}
+                position={[location.latitude, location.longitude]}
+                icon={createEventIcon(location.category || location.location_type, isHighlighted)}
+                eventHandlers={{
+                  click: () => handleEventClick(location),
+                  mouseover: () => setHoveredEvent(location),
+                  mouseout: () => setHoveredEvent(null)
+                }}
+              >
+                <Popup>
+                  <div className="event-popup">
+                    <strong>{location.name}</strong>
+                    <br />
+                    {location.address && <>{location.address}<br /></>}
+                    <span className="event-popup-category">
+                      {location.category || location.location_type || 'Place'}
+                    </span>
+                    {location.distance_km && (
+                      <><br />{location.distance_km.toFixed(1)} km away</>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
@@ -448,46 +476,19 @@ const DiscoveryPage = () => {
         </div>
       )}
 
-      {/* Bottom Sheet with Events and Locations */}
-      <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
-        <div className="events-list">
-          <h2 className="events-list-title">
-            {events.length + locations.length} Results Found
-            {events.length > 0 && locations.length > 0 && (
-              <span style={{ fontSize: '0.8em', fontWeight: 'normal', marginLeft: '8px' }}>
-                ({events.length} events, {locations.length} places)
-              </span>
-            )}
-          </h2>
-
-          {events.length === 0 && locations.length === 0 && !loading && (
-            <div className="no-events">
-              <p>No results found in this area.</p>
-              <p>Try increasing the search radius or changing filters.</p>
-            </div>
-          )}
-
-          {events.map((event) => (
-            <EventCard
-              key={`event-${event.id}`}
-              event={event}
-              isFavorited={favoriteIds.has(event.id)}
-              onFavoriteToggle={handleFavoriteToggle}
-              onClick={() => setSelectedEvent(event)}
-            />
-          ))}
-
-          {locations.map((location) => (
-            <EventCard
-              key={`location-${location.id}`}
-              event={location}
-              isFavorited={favoriteIds.has(location.id)}
-              onFavoriteToggle={handleFavoriteToggle}
-              onClick={() => setSelectedEvent(location)}
-            />
-          ))}
-        </div>
-      </BottomSheet>
+      {/* Results Panel (Right Sidebar) */}
+      <ResultsPanel
+        events={events}
+        locations={locations}
+        loading={loading}
+        favoriteIds={favoriteIds}
+        onFavoriteToggle={handleFavoriteToggle}
+        onEventClick={handleEventClick}
+        onEventHover={handleEventHover}
+        selectedEventId={selectedEvent?.id}
+        isOpen={resultsPanelOpen}
+        onToggle={() => setResultsPanelOpen(!resultsPanelOpen)}
+      />
 
       {/* Event Detail Modal (optional - can be implemented later) */}
       {selectedEvent && (

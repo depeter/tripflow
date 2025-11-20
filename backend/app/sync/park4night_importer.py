@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .base_importer import BaseImporter
 from app.models import LocationType
 import logging
@@ -20,31 +20,45 @@ class Park4NightImporter(BaseImporter):
     def get_source_query(self) -> str:
         """
         SQL query to fetch data from Scraparr's Park4Night scraper_2 schema.
+        Includes multilingual descriptions from place_descriptions table.
         """
         return """
             SELECT
-                id,
-                nom as name,
-                latitude,
-                longitude,
-                pays as country,
-                note as rating,
-                photos,
-                internet,
-                electricite as electricity,
-                tarif as price_info,
-                animaux_acceptes as pets_allowed,
-                eau_noire as waste_disposal,
-                type_de_lieu as location_type_raw,
-                stationnement as parking_type,
-                camping_car_park,
-                etiquettes as tags_raw,
-                description,
-                ville as city,
-                updated_at,
-                scraped_at
-            FROM scraper_2.places
-            ORDER BY id
+                p.id,
+                p.nom as name,
+                p.latitude,
+                p.longitude,
+                p.pays as country,
+                p.note as rating,
+                p.photos,
+                p.internet,
+                p.electricite as electricity,
+                p.tarif as price_info,
+                p.animaux_acceptes as pets_allowed,
+                p.eau_noire as waste_disposal,
+                p.type_de_lieu as location_type_raw,
+                p.stationnement as parking_type,
+                p.camping_car_park,
+                p.etiquettes as tags_raw,
+                p.description,
+                p.ville as city,
+                p.updated_at,
+                p.scraped_at,
+                -- Aggregate all language descriptions as JSON
+                COALESCE(
+                    json_object_agg(
+                        pd.language_code,
+                        pd.description
+                    ) FILTER (WHERE pd.language_code IS NOT NULL),
+                    '{}'::json
+                ) as descriptions_json
+            FROM scraper_2.places p
+            LEFT JOIN scraper_2.place_descriptions pd ON p.id = pd.place_id
+            GROUP BY p.id, p.nom, p.latitude, p.longitude, p.pays, p.note, p.photos,
+                     p.internet, p.electricite, p.tarif, p.animaux_acceptes, p.eau_noire,
+                     p.type_de_lieu, p.stationnement, p.camping_car_park, p.etiquettes,
+                     p.description, p.ville, p.updated_at, p.scraped_at
+            ORDER BY p.id
         """
 
     def transform_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
@@ -141,11 +155,15 @@ class Park4NightImporter(BaseImporter):
         if row.get("parking_type"):
             features.append(row["parking_type"])
 
+        # Use fallback description field (will be overridden by translations table)
+        # Priority: English > French > Dutch > German > Spanish > Italian > fallback
+        primary_description = row.get("description")
+
         # Create the transformed data
         return {
             "external_id": f"park4night_{row.get('id')}",
             "name": row.get("name") or f"Park4Night Location {row.get('id')}",
-            "description": row.get("description"),
+            "description": primary_description,  # Fallback only, translations handled separately
             "location_type": location_type,
             "latitude": float(row.get("latitude")) if row.get("latitude") else None,
             "longitude": float(row.get("longitude")) if row.get("longitude") else None,
@@ -178,5 +196,30 @@ class Park4NightImporter(BaseImporter):
                 "tags_raw": row.get("tags_raw"),
                 "scraped_at": row.get("scraped_at").isoformat() if row.get("scraped_at") else None,
                 "updated_at": row.get("updated_at").isoformat() if row.get("updated_at") else None,
+                # Multilingual descriptions now stored in location_translations table
             })
         }
+
+    def get_translations(self, row: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """
+        Extract multilingual descriptions from Park4Night data.
+
+        Returns:
+            Dictionary mapping language codes to descriptions:
+            {'en': 'English text', 'nl': 'Dutch text', 'fr': 'French text', ...}
+        """
+        descriptions_json = row.get("descriptions_json", {})
+        if isinstance(descriptions_json, str):
+            try:
+                descriptions_json = json.loads(descriptions_json)
+            except:
+                return None
+
+        # Return only non-empty descriptions
+        translations = {}
+        for lang_code in ['en', 'nl', 'fr', 'de', 'es', 'it']:
+            desc = descriptions_json.get(lang_code)
+            if desc and desc.strip():
+                translations[lang_code] = desc.strip()
+
+        return translations if translations else None
