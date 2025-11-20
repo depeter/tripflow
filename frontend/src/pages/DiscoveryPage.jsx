@@ -155,20 +155,47 @@ const DiscoveryPage = () => {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Filter state
+  // Filter state - restructured for type-specific filtering
   const [filters, setFilters] = useState({
+    // Shared filters
     showEvents: true,
     showLocations: true,
-    selectedCategories: [],
-    selectedEventTypes: [],
     searchText: '',
     radiusKm: 25,
-    freeOnly: false
+
+    // Event-specific filters
+    eventFilters: {
+      categories: [],
+      eventTypes: [],
+      dateStart: null,
+      dateEnd: null,
+      datePreset: null,
+      priceMin: null,
+      priceMax: null,
+      freeOnly: false,
+      timeOfDay: []
+    },
+
+    // Location-specific filters
+    locationFilters: {
+      locationTypes: [],
+      minRating: null,
+      priceTypes: [],
+      amenities: [],
+      features: [],
+      openNow: false,
+      is24_7: false,
+      noBookingRequired: false,
+      minCapacity: null
+    }
   });
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(true); // Open by default on desktop
 
   // UI state
-  const [resultsPanelOpen, setResultsPanelOpen] = useState(true); // Open by default on desktop
+  const [resultsPanelOpen, setResultsPanelOpen] = useState(() => {
+    // Start closed on mobile, open on desktop
+    return window.innerWidth >= 1025;
+  });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
@@ -253,11 +280,34 @@ const DiscoveryPage = () => {
         longitude: searchLocation.lng,
         radius_km: filters.radiusKm,
         item_types: item_types.length > 0 ? item_types : ['events', 'locations'],
-        categories: filters.selectedCategories.length > 0 ? filters.selectedCategories : null,
-        event_types: filters.selectedEventTypes.length > 0 ? filters.selectedEventTypes : null,
         search_text: filters.searchText.trim() || null,
-        free_only: filters.freeOnly,
-        limit: 200
+
+        // Event-specific filters
+        event_filters: filters.showEvents ? {
+          categories: filters.eventFilters.categories.length > 0 ? filters.eventFilters.categories : null,
+          event_types: filters.eventFilters.eventTypes.length > 0 ? filters.eventFilters.eventTypes : null,
+          date_start: filters.eventFilters.dateStart || null,
+          date_end: filters.eventFilters.dateEnd || null,
+          price_min: filters.eventFilters.priceMin || null,
+          price_max: filters.eventFilters.priceMax || null,
+          free_only: filters.eventFilters.freeOnly || false,
+          time_of_day: filters.eventFilters.timeOfDay.length > 0 ? filters.eventFilters.timeOfDay : null
+        } : null,
+
+        // Location-specific filters
+        location_filters: filters.showLocations ? {
+          location_types: filters.locationFilters.locationTypes.length > 0 ? filters.locationFilters.locationTypes : null,
+          min_rating: filters.locationFilters.minRating || null,
+          price_types: filters.locationFilters.priceTypes.length > 0 ? filters.locationFilters.priceTypes : null,
+          amenities: filters.locationFilters.amenities.length > 0 ? filters.locationFilters.amenities : null,
+          features: filters.locationFilters.features.length > 0 ? filters.locationFilters.features : null,
+          open_now: filters.locationFilters.openNow || false,
+          is_24_7: filters.locationFilters.is24_7 || false,
+          no_booking_required: filters.locationFilters.noBookingRequired || false,
+          min_capacity: filters.locationFilters.minCapacity || null
+        } : null,
+
+        limit: 50
       });
 
       setEvents(response.events || []);

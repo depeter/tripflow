@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import SharedFilters from './SharedFilters';
+import EventFilters from './EventFilters';
+import LocationFilters from './LocationFilters';
 import './FilterSidebar.css';
 
 const FilterSidebar = ({
@@ -9,130 +12,79 @@ const FilterSidebar = ({
   eventsCount = 0,
   loading = false
 }) => {
-  const [localFilters, setLocalFilters] = useState(filters);
+  // Count total active filters
+  const countActiveFilters = () => {
+    let count = 0;
 
-  // Sync with parent filters
-  useEffect(() => {
-    setLocalFilters(filters);
-  }, [filters]);
+    // Count search text
+    if (filters.searchText?.trim()) count++;
 
-  // Available categories with icons (values match database UPPERCASE format)
-  const categories = [
-    { value: 'FESTIVAL', label: 'Festival', icon: '🎉' },
-    { value: 'CONCERT', label: 'Concert', icon: '🎵' },
-    { value: 'SPORTS', label: 'Sports', icon: '⚽' },
-    { value: 'MARKET', label: 'Market', icon: '🛍️' },
-    { value: 'EXHIBITION', label: 'Exhibition', icon: '🖼️' },
-    { value: 'THEATER', label: 'Theater', icon: '🎭' },
-    { value: 'CULTURAL', label: 'Cultural', icon: '🏛️' },
-    { value: 'FOOD', label: 'Food & Drink', icon: '🍽️' },
-    { value: 'OUTDOOR', label: 'Outdoor', icon: '🏕️' },
-    { value: 'CAMPING', label: 'Camping', icon: '⛺' },
-    { value: 'PARKING', label: 'Parking', icon: '🅿️' },
-    { value: 'OTHER', label: 'Other', icon: '📍' }
-  ];
-
-  // Event types (can be expanded based on your data)
-  const eventTypes = [
-    'festival',
-    'workshop',
-    'exhibition',
-    'performance',
-    'conference',
-    'market',
-    'sports',
-    'concert',
-    'party'
-  ];
-
-  const handleCategoryToggle = (categoryValue) => {
-    const newCategories = localFilters.selectedCategories.includes(categoryValue)
-      ? localFilters.selectedCategories.filter(c => c !== categoryValue)
-      : [...localFilters.selectedCategories, categoryValue];
-
-    const newFilters = { ...localFilters, selectedCategories: newCategories };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  const handleEventTypeToggle = (eventType) => {
-    const newEventTypes = localFilters.selectedEventTypes.includes(eventType)
-      ? localFilters.selectedEventTypes.filter(t => t !== eventType)
-      : [...localFilters.selectedEventTypes, eventType];
-
-    const newFilters = { ...localFilters, selectedEventTypes: newEventTypes };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  // Debounce timer for search text
-  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
-
-  const handleSearchChange = (e) => {
-    const newValue = e.target.value;
-    const newFilters = { ...localFilters, searchText: newValue };
-    setLocalFilters(newFilters);
-
-    // Clear existing timer
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
+    // Count event filters
+    if (filters.showEvents) {
+      count += filters.eventFilters?.categories?.length || 0;
+      count += filters.eventFilters?.eventTypes?.length || 0;
+      count += filters.eventFilters?.timeOfDay?.length || 0;
+      if (filters.eventFilters?.freeOnly) count++;
+      if (filters.eventFilters?.dateStart) count++;
+      if (filters.eventFilters?.priceMin || filters.eventFilters?.priceMax) count++;
     }
 
-    // Set new timer to trigger search after 500ms of no typing
-    const timer = setTimeout(() => {
-      onFilterChange(newFilters);
-    }, 500);
-    setSearchDebounceTimer(timer);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    // Clear debounce timer and trigger immediately
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
+    // Count location filters
+    if (filters.showLocations) {
+      count += filters.locationFilters?.locationTypes?.length || 0;
+      count += filters.locationFilters?.amenities?.length || 0;
+      count += filters.locationFilters?.features?.length || 0;
+      count += filters.locationFilters?.priceTypes?.length || 0;
+      if (filters.locationFilters?.minRating) count++;
+      if (filters.locationFilters?.openNow) count++;
+      if (filters.locationFilters?.is24_7) count++;
+      if (filters.locationFilters?.noBookingRequired) count++;
+      if (filters.locationFilters?.minCapacity) count++;
     }
-    onFilterChange(localFilters);
-  };
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (searchDebounceTimer) {
-        clearTimeout(searchDebounceTimer);
-      }
-    };
-  }, [searchDebounceTimer]);
-
-  const handleRadiusChange = (e) => {
-    const newFilters = { ...localFilters, radiusKm: Number(e.target.value) };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  const handleFreeOnlyChange = (e) => {
-    const newFilters = { ...localFilters, freeOnly: e.target.checked };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
+    return count;
   };
 
   const handleClearFilters = () => {
-    const clearedFilters = {
-      selectedCategories: [],
-      selectedEventTypes: [],
+    onFilterChange({
+      showEvents: true,
+      showLocations: true,
       searchText: '',
-      radiusKm: localFilters.radiusKm,
-      freeOnly: false
-    };
-    setLocalFilters(clearedFilters);
-    onFilterChange(clearedFilters);
-    // Search will trigger automatically via useEffect in parent
+      radiusKm: filters.radiusKm, // Keep radius
+
+      eventFilters: {
+        categories: [],
+        eventTypes: [],
+        dateStart: null,
+        dateEnd: null,
+        datePreset: null,
+        priceMin: null,
+        priceMax: null,
+        freeOnly: false,
+        timeOfDay: []
+      },
+
+      locationFilters: {
+        locationTypes: [],
+        minRating: null,
+        priceTypes: [],
+        amenities: [],
+        features: [],
+        openNow: false,
+        is24_7: false,
+        noBookingRequired: false,
+        minCapacity: null
+      }
+    });
   };
 
-  const hasActiveFilters =
-    localFilters.selectedCategories.length > 0 ||
-    localFilters.selectedEventTypes.length > 0 ||
-    localFilters.searchText.trim() !== '' ||
-    localFilters.freeOnly;
+  const activeFilterCount = countActiveFilters();
+  const hasActiveFilters = activeFilterCount > 0;
+
+  // Determine which filter sections to show
+  const showBoth = filters.showEvents && filters.showLocations;
+  const showOnlyEvents = filters.showEvents && !filters.showLocations;
+  const showOnlyLocations = !filters.showEvents && filters.showLocations;
 
   return (
     <>
@@ -144,12 +96,9 @@ const FilterSidebar = ({
       >
         <span className="filter-icon">⚙️</span>
         <span>Filters</span>
-        {hasActiveFilters && <span className="filter-badge">{
-          localFilters.selectedCategories.length +
-          localFilters.selectedEventTypes.length +
-          (localFilters.freeOnly ? 1 : 0) +
-          (localFilters.searchText.trim() ? 1 : 0)
-        }</span>}
+        {hasActiveFilters && (
+          <span className="filter-badge">{activeFilterCount}</span>
+        )}
       </button>
 
       {/* Sidebar */}
@@ -166,137 +115,45 @@ const FilterSidebar = ({
         </div>
 
         <div className="filter-sidebar-content">
-          {/* Show Filter (Events/Locations/Both) */}
-          <div className="filter-section">
-            <h3>Show</h3>
-            <div className="filter-show-options">
-              <label className="filter-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={localFilters.showEvents !== false}
-                  onChange={(e) => {
-                    const newFilters = { ...localFilters, showEvents: e.target.checked };
-                    setLocalFilters(newFilters);
-                    onFilterChange(newFilters);
-                  }}
-                  className="filter-checkbox"
-                />
-                <span className="filter-checkbox-text">🎉 Events</span>
-              </label>
-              <label className="filter-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={localFilters.showLocations !== false}
-                  onChange={(e) => {
-                    const newFilters = { ...localFilters, showLocations: e.target.checked };
-                    setLocalFilters(newFilters);
-                    onFilterChange(newFilters);
-                  }}
-                  className="filter-checkbox"
-                />
-                <span className="filter-checkbox-text">📍 Places (Camping/Parking)</span>
-              </label>
-            </div>
-          </div>
+          {/* Shared Filters - Always visible */}
+          <SharedFilters
+            filters={filters}
+            onFilterChange={onFilterChange}
+            loading={loading}
+          />
 
-          {/* Search Box */}
-          <div className="filter-section">
-            <h3>Search</h3>
-            <form onSubmit={handleSearchSubmit} className="filter-search-form">
-              <input
-                type="text"
-                placeholder="e.g., christmas, jazz, food..."
-                value={localFilters.searchText}
-                onChange={handleSearchChange}
-                className="filter-search-input"
+          {/* Conditional Rendering based on selected types */}
+          {showOnlyEvents && (
+            <EventFilters
+              filters={filters}
+              onFilterChange={onFilterChange}
+            />
+          )}
+
+          {showOnlyLocations && (
+            <LocationFilters
+              filters={filters}
+              onFilterChange={onFilterChange}
+            />
+          )}
+
+          {showBoth && (
+            <>
+              <EventFilters
+                filters={filters}
+                onFilterChange={onFilterChange}
               />
-              <button
-                type="submit"
-                className="filter-search-btn"
-                disabled={loading}
-              >
-                🔎
-              </button>
-            </form>
-          </div>
-
-          {/* Radius */}
-          <div className="filter-section">
-            <h3>Distance</h3>
-            <div className="filter-radius">
-              <select
-                value={localFilters.radiusKm}
-                onChange={handleRadiusChange}
-                className="filter-select"
-              >
-                <option value={5}>5 km</option>
-                <option value={10}>10 km</option>
-                <option value={25}>25 km</option>
-                <option value={50}>50 km</option>
-                <option value={100}>100 km</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="filter-section">
-            <h3>Categories</h3>
-            <div className="filter-chips">
-              {categories.map(category => (
-                <button
-                  key={category.value}
-                  className={`filter-chip ${
-                    localFilters.selectedCategories.includes(category.value)
-                      ? 'active'
-                      : ''
-                  }`}
-                  onClick={() => handleCategoryToggle(category.value)}
-                >
-                  <span className="filter-chip-icon">{category.icon}</span>
-                  <span className="filter-chip-label">{category.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Event Types */}
-          <div className="filter-section">
-            <h3>Event Types</h3>
-            <div className="filter-checkboxes">
-              {eventTypes.map(type => (
-                <label key={type} className="filter-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={localFilters.selectedEventTypes.includes(type)}
-                    onChange={() => handleEventTypeToggle(type)}
-                    className="filter-checkbox"
-                  />
-                  <span className="filter-checkbox-text">
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Filter */}
-          <div className="filter-section">
-            <h3>Price</h3>
-            <label className="filter-checkbox-label filter-free-only">
-              <input
-                type="checkbox"
-                checked={localFilters.freeOnly}
-                onChange={handleFreeOnlyChange}
-                className="filter-checkbox"
+              <LocationFilters
+                filters={filters}
+                onFilterChange={onFilterChange}
               />
-              <span className="filter-checkbox-text">Free events only</span>
-            </label>
-          </div>
+            </>
+          )}
 
           {/* Results Summary */}
           <div className="filter-results">
             <p className="filter-results-count">
-              {loading ? 'Searching...' : `${eventsCount} results found`}
+              {loading ? 'Searching...' : `${eventsCount} result${eventsCount !== 1 ? 's' : ''} found`}
             </p>
           </div>
 
@@ -308,7 +165,7 @@ const FilterSidebar = ({
                 onClick={handleClearFilters}
                 disabled={loading}
               >
-                Clear Filters
+                Clear All Filters
               </button>
             )}
           </div>

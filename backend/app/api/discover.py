@@ -59,13 +59,24 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
             )
         )
 
+        # Use new structured filters if provided, otherwise fall back to legacy
+        event_filters = params.event_filters or {}
+        categories = event_filters.get('categories') or params.categories
+        event_types = event_filters.get('event_types') or params.event_types
+        date_start = event_filters.get('date_start') or params.start_date
+        date_end = event_filters.get('date_end') or params.end_date
+        free_only = event_filters.get('free_only') if params.event_filters else params.free_only
+        price_min = event_filters.get('price_min')
+        price_max = event_filters.get('price_max')
+        time_of_day = event_filters.get('time_of_day')
+
         # Filter by categories if specified
-        if params.categories:
-            event_query = event_query.filter(Event.category.in_(params.categories))
+        if categories:
+            event_query = event_query.filter(Event.category.in_(categories))
 
         # Filter by event types if specified
-        if params.event_types:
-            event_query = event_query.filter(Event.event_type.in_(params.event_types))
+        if event_types:
+            event_query = event_query.filter(Event.event_type.in_(event_types))
 
         # Filter by search text if specified
         if params.search_text:
@@ -81,11 +92,11 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
 
         # Filter by date range
         now = datetime.now()
-        if params.start_date:
+        if date_start:
             event_query = event_query.filter(
                 or_(
-                    Event.end_datetime >= params.start_date,
-                    and_(Event.end_datetime.is_(None), Event.start_datetime >= params.start_date)
+                    Event.end_datetime >= date_start,
+                    and_(Event.end_datetime.is_(None), Event.start_datetime >= date_start)
                 )
             )
         else:
@@ -97,12 +108,53 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
                 )
             )
 
-        if params.end_date:
-            event_query = event_query.filter(Event.start_datetime <= params.end_date)
+        if date_end:
+            event_query = event_query.filter(Event.start_datetime <= date_end)
 
-        # Filter by free events if requested
-        if params.free_only:
+        # Filter by price range
+        if free_only:
             event_query = event_query.filter(Event.free == True)
+        else:
+            if price_min is not None:
+                event_query = event_query.filter(
+                    or_(
+                        Event.free == True,
+                        Event.price >= price_min
+                    )
+                )
+            if price_max is not None:
+                event_query = event_query.filter(
+                    or_(
+                        Event.free == True,
+                        Event.price <= price_max
+                    )
+                )
+
+        # Filter by time of day (extract hour from start_datetime)
+        if time_of_day:
+            time_conditions = []
+            if 'morning' in time_of_day:
+                time_conditions.append(and_(
+                    func.extract('hour', Event.start_datetime) >= 6,
+                    func.extract('hour', Event.start_datetime) < 12
+                ))
+            if 'afternoon' in time_of_day:
+                time_conditions.append(and_(
+                    func.extract('hour', Event.start_datetime) >= 12,
+                    func.extract('hour', Event.start_datetime) < 18
+                ))
+            if 'evening' in time_of_day:
+                time_conditions.append(and_(
+                    func.extract('hour', Event.start_datetime) >= 18,
+                    func.extract('hour', Event.start_datetime) < 24
+                ))
+            if 'night' in time_of_day:
+                time_conditions.append(and_(
+                    func.extract('hour', Event.start_datetime) >= 0,
+                    func.extract('hour', Event.start_datetime) < 6
+                ))
+            if time_conditions:
+                event_query = event_query.filter(or_(*time_conditions))
 
         # Sort and limit
         event_query = event_query.order_by(distance_expr).limit(params.limit)
@@ -162,6 +214,73 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
                 )
             )
         )
+
+        # Use new structured location filters if provided
+        location_filters = params.location_filters or {}
+        location_types = location_filters.get('location_types')
+        min_rating = location_filters.get('min_rating')
+        price_types = location_filters.get('price_types')
+        amenities = location_filters.get('amenities')
+        features = location_filters.get('features')
+        open_now = location_filters.get('open_now', False)
+        is_24_7 = location_filters.get('is_24_7', False)
+        no_booking_required = location_filters.get('no_booking_required', False)
+        min_capacity = location_filters.get('min_capacity')
+
+        # Filter by location types
+        if location_types:
+            location_query = location_query.filter(Location.location_type.in_(location_types))
+
+        # Filter by minimum rating
+        if min_rating is not None:
+            location_query = location_query.filter(Location.rating >= min_rating)
+
+        # Filter by price types
+        if price_types:
+            price_conditions = []
+            for price_type in price_types:
+                if price_type == 'free':
+                    price_conditions.append(Location.price_type == 'free')
+                elif price_type == 'paid_low':
+                    price_conditions.append(and_(Location.price_min >= 0, Location.price_max <= 10))
+                elif price_type == 'paid_medium':
+                    price_conditions.append(and_(Location.price_min >= 10, Location.price_max <= 25))
+                elif price_type == 'paid_high':
+                    price_conditions.append(and_(Location.price_min >= 25, Location.price_max <= 50))
+                elif price_type == 'paid_premium':
+                    price_conditions.append(Location.price_min >= 50)
+            if price_conditions:
+                location_query = location_query.filter(or_(*price_conditions))
+
+        # Filter by amenities (check if all required amenities are present in JSONB)
+        if amenities:
+            for amenity in amenities:
+                # JSONB containment check - amenities JSONB should contain the key
+                location_query = location_query.filter(
+                    Location.amenities.op('?')(amenity)  # PostgreSQL JSONB ? operator
+                )
+
+        # Filter by features (check if all required features are present in JSONB)
+        if features:
+            for feature in features:
+                location_query = location_query.filter(
+                    Location.features.op('?')(feature)
+                )
+
+        # Filter by 24/7 access
+        if is_24_7:
+            location_query = location_query.filter(Location.is_24_7 == True)
+
+        # Filter by booking requirement
+        if no_booking_required:
+            location_query = location_query.filter(Location.requires_booking == False)
+
+        # Filter by minimum capacity
+        if min_capacity is not None:
+            location_query = location_query.filter(Location.capacity_available >= min_capacity)
+
+        # TODO: Implement open_now filter (requires parsing opening_hours JSONB)
+        # This would need to check current time against opening_hours structure
 
         # Filter by search text if specified
         if params.search_text:

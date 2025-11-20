@@ -58,6 +58,7 @@ def sync(source, sync_all, batch_size, limit):
                     click.echo(f"  Fetched: {stats['fetched']}")
                     click.echo(f"  Inserted: {stats['inserted']}")
                     click.echo(f"  Updated: {stats['updated']}")
+                    click.echo(f"  Translations: {stats.get('translations', 0)}")
                     click.echo(f"  Errors: {stats['errors']}")
                     click.echo(f"  Duration: {stats['duration_seconds']:.2f}s")
 
@@ -73,6 +74,7 @@ def sync(source, sync_all, batch_size, limit):
             click.echo(f"Fetched: {stats['fetched']}")
             click.echo(f"Inserted: {stats['inserted']}")
             click.echo(f"Updated: {stats['updated']}")
+            click.echo(f"Translations: {stats.get('translations', 0)}")
             click.echo(f"Errors: {stats['errors']}")
             click.echo(f"Duration: {stats['duration_seconds']:.2f}s")
 

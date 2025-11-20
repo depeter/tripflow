@@ -26,14 +26,19 @@ const ResultsPanel = ({
       {/* Panel content */}
       <div className="results-panel-content">
         <div className="results-panel-header">
-          <h2 className="results-count">
-            {totalResults} Result{totalResults !== 1 ? 's' : ''} Found
-          </h2>
-          {events.length > 0 && locations.length > 0 && (
-            <p className="results-breakdown">
-              {events.length} event{events.length !== 1 ? 's' : ''}, {locations.length} place{locations.length !== 1 ? 's' : ''}
-            </p>
-          )}
+          <div className="results-header-content">
+            <h2 className="results-count">
+              {totalResults} Result{totalResults !== 1 ? 's' : ''} Found
+            </h2>
+            {events.length > 0 && locations.length > 0 && (
+              <p className="results-breakdown">
+                {events.length} event{events.length !== 1 ? 's' : ''}, {locations.length} place{locations.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+          <button className="results-close-btn" onClick={onToggle} aria-label="Close results">
+            ✕
+          </button>
         </div>
 
         {/* No results message */}

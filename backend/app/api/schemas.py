@@ -224,18 +224,49 @@ class EventResponse(BaseModel):
         from_attributes = True
 
 
+class EventFiltersSchema(BaseModel):
+    """Event-specific filters"""
+    categories: Optional[List[str]] = Field(None, description="Filter by event categories (FESTIVAL, CONCERT, etc.)")
+    event_types: Optional[List[str]] = Field(None, description="Filter by event types (festival, workshop, etc.)")
+    date_start: Optional[datetime] = Field(None, description="Only events after this date")
+    date_end: Optional[datetime] = Field(None, description="Only events before this date")
+    price_min: Optional[float] = Field(None, ge=0, description="Minimum price filter")
+    price_max: Optional[float] = Field(None, ge=0, description="Maximum price filter")
+    free_only: bool = Field(False, description="Only show free events")
+    time_of_day: Optional[List[str]] = Field(None, description="Filter by time periods: morning, afternoon, evening, night")
+
+
+class LocationFiltersSchema(BaseModel):
+    """Location-specific filters"""
+    location_types: Optional[List[str]] = Field(None, description="Filter by location types (CAMPSITE, PARKING, etc.)")
+    min_rating: Optional[float] = Field(None, ge=0, le=5, description="Minimum star rating")
+    price_types: Optional[List[str]] = Field(None, description="Filter by price types: free, paid_low, paid_medium, paid_high, paid_premium")
+    amenities: Optional[List[str]] = Field(None, description="Required amenities (wifi, electricity, showers, etc.)")
+    features: Optional[List[str]] = Field(None, description="Required facilities (restaurant, shop, laundry, etc.)")
+    open_now: bool = Field(False, description="Only show currently open locations")
+    is_24_7: bool = Field(False, description="Only show 24/7 accessible locations")
+    no_booking_required: bool = Field(False, description="Only show locations without booking requirement")
+    min_capacity: Optional[int] = Field(None, ge=1, description="Minimum available capacity")
+
+
 class DiscoverySearchParams(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
     radius_km: int = Field(25, ge=1, le=200, description="Search radius in kilometers")
     item_types: Optional[List[str]] = Field(["events", "locations"], description="Types to show: events, locations, or both")
-    categories: Optional[List[str]] = Field(None, description="Filter by event categories")
-    event_types: Optional[List[str]] = Field(None, description="Filter by event types")
     search_text: Optional[str] = Field(None, description="Search text for name/description/themes")
-    start_date: Optional[datetime] = Field(None, description="Only events after this date")
-    end_date: Optional[datetime] = Field(None, description="Only events before this date")
-    free_only: bool = Field(False, description="Only show free events")
     limit: int = Field(200, ge=1, le=500, description="Max results per type")
+
+    # Structured filters
+    event_filters: Optional[EventFiltersSchema] = Field(None, description="Event-specific filters")
+    location_filters: Optional[LocationFiltersSchema] = Field(None, description="Location-specific filters")
+
+    # Legacy fields for backward compatibility (deprecated)
+    categories: Optional[List[str]] = Field(None, deprecated=True)
+    event_types: Optional[List[str]] = Field(None, deprecated=True)
+    start_date: Optional[datetime] = Field(None, deprecated=True)
+    end_date: Optional[datetime] = Field(None, deprecated=True)
+    free_only: bool = Field(False, deprecated=True)
 
 
 class LocationDiscoveryResponse(BaseModel):

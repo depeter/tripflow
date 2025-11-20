@@ -56,6 +56,14 @@
   padding: 20px;
   border-bottom: 2px solid #ecf0f1;
   background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.results-header-content {
+  flex: 1;
 }
 
 .results-count {
@@ -69,6 +77,28 @@
   font-size: 14px;
   color: #7f8c8d;
   margin: 4px 0 0 0;
+}
+
+/* Close button in header (mobile/tablet only) */
+.results-close-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #7f8c8d;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.results-close-btn:hover {
+  background: #ecf0f1;
+  color: #2c3e50;
 }
 
 /* Results list */
@@ -188,6 +218,10 @@
     align-items: center;
     justify-content: center;
   }
+
+  .results-close-btn {
+    display: flex;
+  }
 }
 
 /* Mobile: collapsible overlay */
@@ -201,9 +235,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    left: -36px;
-    width: 36px;
-    height: 50px;
+    left: -40px;
+    width: 40px;
+    height: 60px;
+    background: #3498db;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: -3px 3px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .results-panel-toggle:hover {
+    background: #2980b9;
+  }
+
+  .results-close-btn {
+    display: flex;
   }
 
   .results-panel-header {
