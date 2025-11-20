@@ -93,6 +93,28 @@
   border-radius: 50%;
 }
 
+/* Custom SVG Event Markers */
+.custom-event-marker {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.custom-event-marker:hover {
+  transform: scale(1.1);
+  z-index: 1000 !important;
+}
+
+.custom-event-marker svg {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+  transition: filter 0.2s ease;
+}
+
+.custom-event-marker:hover svg {
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.4));
+}
+
 .event-popup {
   min-width: 150px;
 }

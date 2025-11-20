@@ -17,29 +17,77 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// Create custom event marker icon with category color
+// Create custom event marker icon with category color and SVG icon
 const createEventIcon = (category) => {
-  const colors = {
-    festival: '#FF6B6B',
-    concert: '#4ECDC4',
-    sports: '#45B7D1',
-    market: '#FFA07A',
-    exhibition: '#98D8C8',
-    theater: '#C77DFF',
-    cultural: '#FF9F1C',
-    food: '#E63946',
-    outdoor: '#06D6A0',
-    other: '#95A5A6'
+  const iconConfig = {
+    festival: {
+      color: '#FF6B6B',
+      icon: '<path d="M12 2l2 7h7l-6 4 2 7-5-4-5 4 2-7-6-4h7z"/>'
+    },
+    concert: {
+      color: '#4ECDC4',
+      icon: '<path d="M12 3v10.5c-.6-.3-1.3-.5-2-.5-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4V7h4V3h-6z"/>'
+    },
+    sports: {
+      color: '#45B7D1',
+      icon: '<circle cx="12" cy="12" r="10" fill="none" stroke="white" stroke-width="2"/><path d="M12 2v20M2 12h20M6 4l12 16M18 4L6 20"/>'
+    },
+    market: {
+      color: '#FFA07A',
+      icon: '<path d="M4 4h16l-2 4H6L4 4zm0 0v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8"/><path d="M8 8v4m4-4v4m4-4v4"/>'
+    },
+    exhibition: {
+      color: '#98D8C8',
+      icon: '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="white" stroke-width="2"/><path d="M9 9h6m-6 3h6m-6 3h3"/>'
+    },
+    theater: {
+      color: '#C77DFF',
+      icon: '<path d="M12 2C7 2 3 6 3 11v8c0 1.1.9 2 2 2h2v-6c0-2.2 1.8-4 4-4h2c2.2 0 4 1.8 4 4v6h2c1.1 0 2-.9 2-2v-8c0-5-4-9-9-9z"/><circle cx="9" cy="8" r="1.5"/><circle cx="15" cy="8" r="1.5"/><path d="M8 13c0-2.2 1.8-4 4-4s4 1.8 4 4"/>'
+    },
+    cultural: {
+      color: '#FF9F1C',
+      icon: '<path d="M4 4h16v16H4z" fill="none" stroke="white" stroke-width="2"/><path d="M8 4v16m8-16v16M4 8h16m-16 8h16"/>'
+    },
+    food: {
+      color: '#E63946',
+      icon: '<path d="M8 2v8c0 1.1-.9 2-2 2s-2-.9-2-2V2m4 0v8c0 1.1.9 2 2 2s2-.9 2-2V2M6 12v8m6-18v8l4 4v8h-4"/>'
+    },
+    outdoor: {
+      color: '#06D6A0',
+      icon: '<path d="M12 2L4 8v4l8 6 8-6V8z"/><path d="M4 12l8 6 8-6"/><path d="M12 14v8"/>'
+    },
+    other: {
+      color: '#95A5A6',
+      icon: '<circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M23 12h-6M7 12H1m17.7-7.7l-4.2 4.2M7.5 16.5l-4.2 4.2m14.4 0l-4.2-4.2M7.5 7.5L3.3 3.3"/>'
+    }
   };
 
-  const color = colors[category] || colors.other;
+  const config = iconConfig[category] || iconConfig.other;
+
+  const svgIcon = `
+    <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+      <!-- Shadow -->
+      <ellipse cx="20" cy="47" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
+
+      <!-- Pin background -->
+      <path d="M20 0 C10 0, 2 8, 2 18 C2 28, 20 45, 20 45 C20 45, 38 28, 38 18 C38 8, 30 0, 20 0 Z"
+            fill="${config.color}"
+            stroke="white"
+            stroke-width="2"/>
+
+      <!-- Icon -->
+      <g transform="translate(8, 6)" fill="white" stroke="white" stroke-width="0.5">
+        ${config.icon}
+      </g>
+    </svg>
+  `;
 
   return L.divIcon({
-    className: 'event-marker',
-    html: `<div class="marker-pin" style="background-color: ${color}"></div>`,
-    iconSize: [24, 32],
-    iconAnchor: [12, 32],
-    popupAnchor: [0, -32]
+    className: 'custom-event-marker',
+    html: svgIcon,
+    iconSize: [40, 50],
+    iconAnchor: [20, 50],
+    popupAnchor: [0, -50]
   });
 };
 
