@@ -1,36 +1,55 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
 const Header = () => {
+  const { t, i18n } = useTranslation(['common']);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const menuRef = useRef(null);
+  const languageMenuRef = useRef(null);
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowUserMenu(false);
       }
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target)) {
+        setShowLanguageMenu(false);
+      }
     };
 
-    if (showUserMenu) {
+    if (showUserMenu || showLanguageMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu]);
+  }, [showUserMenu, showLanguageMenu]);
 
   const handleLogout = () => {
     logout();
     setShowUserMenu(false);
     navigate('/login');
   };
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setShowLanguageMenu(false);
+  };
+
+  const languages = [
+    { code: 'en', name: t('language.en'), flag: '🇬🇧' },
+    { code: 'nl', name: t('language.nl'), flag: '🇳🇱' },
+  ];
+
+  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
   const getInitials = (name) => {
     if (!name) return user?.email?.charAt(0).toUpperCase() || 'U';
@@ -63,13 +82,13 @@ const Header = () => {
           {isAuthenticated ? (
             <>
               <Link to="/" className="nav-link">
-                Discover
+                {t('header.discovery')}
               </Link>
               <Link to="/plan-trip" className="nav-link">
-                Plan Trip
+                {t('header.planTrip')}
               </Link>
               <Link to="/my-trips" className="nav-link">
-                My Trips
+                {t('header.myTrips')}
               </Link>
 
               <div className="user-menu-wrapper" ref={menuRef}>
@@ -128,7 +147,7 @@ const Header = () => {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Profile
+                      {t('header.profile')}
                     </Link>
 
                     <Link
@@ -143,7 +162,7 @@ const Header = () => {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Settings
+                      {t('header.settings')}
                     </Link>
 
                     <div className="user-menu-divider"></div>
@@ -156,7 +175,7 @@ const Header = () => {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Sign Out
+                      {t('header.signOut')}
                     </button>
                   </div>
                 )}
@@ -165,13 +184,61 @@ const Header = () => {
           ) : (
             <div className="auth-buttons">
               <Link to="/login" className="btn btn-outline">
-                Sign In
+                {t('header.signIn')}
               </Link>
               <Link to="/register" className="btn btn-primary">
-                Get Started
+                {t('header.getStarted')}
               </Link>
             </div>
           )}
+
+          {/* Language Switcher */}
+          <div className="language-menu-wrapper" ref={languageMenuRef}>
+            <button
+              className="language-button"
+              onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+              aria-label="Change language"
+            >
+              <span className="language-flag">{currentLanguage.flag}</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                className={`chevron ${showLanguageMenu ? 'open' : ''}`}
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 5.293a1 1 0 011.414 0L8 7.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+
+            {showLanguageMenu && (
+              <div className="language-menu-dropdown">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    className={`language-menu-item ${i18n.language === lang.code ? 'active' : ''}`}
+                    onClick={() => changeLanguage(lang.code)}
+                  >
+                    <span className="language-flag">{lang.flag}</span>
+                    <span>{lang.name}</span>
+                    {i18n.language === lang.code && (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="check-icon">
+                        <path
+                          fillRule="evenodd"
+                          d="M13.854 3.646a.5.5 0 010 .708l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 11.708-.708L6.5 10.293l6.646-6.647a.5.5 0 01.708 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
       </div>
     </header>

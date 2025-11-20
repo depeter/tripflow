@@ -1,0 +1,121 @@
+{
+  "step1": {
+    "title": "Plan Je Volgende Avontuur",
+    "subtitle": "Of het nu een weekendje weg is of een daguitstap, wij helpen je geweldige plekken te ontdekken",
+    "stats": {
+      "locations": "{{count}}+ locaties",
+      "aiPowered": "AI-gedreven aanbevelingen"
+    },
+    "multiDay": {
+      "title": "Meerdaagse Reis",
+      "description": "Meerdaagse avonturen met overnachtingen",
+      "features": {
+        "campsites": "Kampeerplaats aanbevelingen",
+        "multiStop": "Routes met meerdere stops",
+        "accommodation": "Accommodatie boeken",
+        "itinerary": "Dag-tot-dag reisschema"
+      }
+    },
+    "dayTrip": {
+      "title": "Dagtocht",
+      "description": "Perfecte dagtochten en excursies",
+      "features": {
+        "attractions": "Attractie suggesties",
+        "optimizedRoutes": "Geoptimaliseerde routes",
+        "timeManagement": "Tijdsbeheer",
+        "localSpots": "Lokale verborgen pareltjes"
+      }
+    }
+  },
+  "step2": {
+    "title": "Waar wil je naartoe?",
+    "subtitle": "Stel je startpunt en bestemming in",
+    "startLocation": "Startlocatie",
+    "startPlaceholder": "Voer je startadres in",
+    "duration": "Reisduur",
+    "durationDays": "Hoeveel dagen?",
+    "durationHours": "Hoeveel uur?",
+    "days": "{{count}} dag",
+    "days_plural": "{{count}} dagen",
+    "hours": "{{count}} uur",
+    "hours_plural": "{{count}} uur",
+    "maxDistance": "Maximum Afstand",
+    "roundTrip": "Rondrit",
+    "oneWay": "Enkele Reis",
+    "addWaypoint": "Tussenstop Toevoegen",
+    "removeWaypoint": "Verwijderen",
+    "waypointPlaceholder": "Voeg tussenstop toe",
+    "clickMap": "Klik op de kaart om locaties toe te voegen"
+  },
+  "step3": {
+    "title": "Wat zijn je interesses?",
+    "subtitle": "Selecteer wat het belangrijkst voor je is",
+    "interests": "Interesses",
+    "environment": "Voorkeur Omgeving"
+  },
+  "step4": {
+    "title": "Ontdek Geweldige Plekken",
+    "subtitle": "Bekijk AI-aanbevelingen of zoek naar specifieke locaties",
+    "tabs": {
+      "recommendations": "Voor Jou",
+      "search": "Zoeken"
+    },
+    "filters": {
+      "all": "Alle Types",
+      "sortBy": "Sorteer op",
+      "matchScore": "Match Score",
+      "rating": "Beoordeling",
+      "price": "Prijs",
+      "distance": "Afstand"
+    },
+    "search": {
+      "placeholder": "Zoek naar locaties...",
+      "noResults": "Geen resultaten gevonden",
+      "clickMap": "Klik ergens op de kaart om een aangepaste locatie toe te voegen"
+    },
+    "card": {
+      "rating": "Beoordeling",
+      "matchScore": "Match",
+      "away": "verderop",
+      "reviews": "{{count}} recensie",
+      "reviews_plural": "{{count}} recensies"
+    }
+  },
+  "step5": {
+    "title": "Pas Je Route Aan",
+    "subtitle": "Sleep om stops te herordenen of verwijder tussenstops die je niet wilt",
+    "routeStats": {
+      "totalDistance": "Totale Afstand",
+      "estimatedDriving": "Geschatte Rijtijd",
+      "stops": "{{count}} stop",
+      "stops_plural": "{{count}} stops"
+    },
+    "dragToReorder": "Sleep om te herordenen"
+  },
+  "step6": {
+    "title": "Beoordelen & Afronden",
+    "subtitle": "Je reis is klaar! Bekijk de details en exporteer je reisschema",
+    "tripSummary": "Reisoverzicht",
+    "waypoints": "Tussenstops",
+    "tripType": "Reistype",
+    "duration": "Duur",
+    "distance": "Afstand",
+    "estimatedDriving": "Geschatte Rijtijd",
+    "multiDay": "Meerdaags",
+    "dayTrip": "Dagtocht",
+    "hours": "{{count}} uur",
+    "hours_plural": "{{count}} uur",
+    "days": "{{count}} dag",
+    "days_plural": "{{count}} dagen",
+    "actions": {
+      "saveTripTitle": "Opslaan naar Account",
+      "saveTripDescription": "Bewaar deze reis om later te bekijken en bewerken",
+      "exportPDFTitle": "Exporteren als PDF",
+      "exportPDFDescription": "Download een afdrukbaar reisschema",
+      "shareTitle": "Reis Delen",
+      "shareDescription": "Krijg een deelbare link",
+      "emailTitle": "Reisschema Mailen",
+      "emailDescription": "Verstuur naar je inbox"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "app": {
+    "name": "TripFlow",
+    "tagline": "Your personal travel planning assistant"
+  },
+  "header": {
+    "planTrip": "Plan Trip",
+    "myTrips": "My Trips",
+    "discovery": "Discovery",
+    "signIn": "Sign In",
+    "getStarted": "Get Started",
+    "profile": "Profile",
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  },
+  "buttons": {
+    "next": "Next",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "exportPDF": "Export PDF",
+    "addToTrip": "Add to Trip",
+    "removeFromTrip": "Remove from Trip"
+  },
+  "labels": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "optional": "Optional",
+    "required": "Required"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "nl": "Nederlands",
+    "fr": "Français",
+    "de": "Deutsch"
+  }
+}

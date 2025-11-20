@@ -1,0 +1,121 @@
+{
+  "step1": {
+    "title": "Plan Your Next Adventure",
+    "subtitle": "Whether it's a weekend getaway or a day exploration, we'll help you discover amazing places",
+    "stats": {
+      "locations": "{{count}}+ locations",
+      "aiPowered": "AI-powered recommendations"
+    },
+    "multiDay": {
+      "title": "Multi Day Trip",
+      "description": "Multi-day adventures with overnight stays",
+      "features": {
+        "campsites": "Campsite recommendations",
+        "multiStop": "Multi-stop routes",
+        "accommodation": "Accommodation booking",
+        "itinerary": "Day-by-day itinerary"
+      }
+    },
+    "dayTrip": {
+      "title": "Day Trip",
+      "description": "Perfect day trips and excursions",
+      "features": {
+        "attractions": "Attraction suggestions",
+        "optimizedRoutes": "Optimized routes",
+        "timeManagement": "Time management",
+        "localSpots": "Local hidden gems"
+      }
+    }
+  },
+  "step2": {
+    "title": "Where do you want to go?",
+    "subtitle": "Set your starting point and destination",
+    "startLocation": "Starting Location",
+    "startPlaceholder": "Enter your starting address",
+    "duration": "Trip Duration",
+    "durationDays": "How many days?",
+    "durationHours": "How many hours?",
+    "days": "{{count}} day",
+    "days_plural": "{{count}} days",
+    "hours": "{{count}} hour",
+    "hours_plural": "{{count}} hours",
+    "maxDistance": "Maximum Distance",
+    "roundTrip": "Round Trip",
+    "oneWay": "One Way",
+    "addWaypoint": "Add Waypoint",
+    "removeWaypoint": "Remove",
+    "waypointPlaceholder": "Add intermediate stop",
+    "clickMap": "Click on the map to add locations"
+  },
+  "step3": {
+    "title": "What are your interests?",
+    "subtitle": "Select what matters most to you",
+    "interests": "Interests",
+    "environment": "Preferred Environment"
+  },
+  "step4": {
+    "title": "Discover Amazing Places",
+    "subtitle": "Browse AI recommendations or search for specific locations",
+    "tabs": {
+      "recommendations": "For You",
+      "search": "Search"
+    },
+    "filters": {
+      "all": "All Types",
+      "sortBy": "Sort by",
+      "matchScore": "Match Score",
+      "rating": "Rating",
+      "price": "Price",
+      "distance": "Distance"
+    },
+    "search": {
+      "placeholder": "Search for locations...",
+      "noResults": "No results found",
+      "clickMap": "Click anywhere on the map to add a custom location"
+    },
+    "card": {
+      "rating": "Rating",
+      "matchScore": "Match",
+      "away": "away",
+      "reviews": "{{count}} review",
+      "reviews_plural": "{{count}} reviews"
+    }
+  },
+  "step5": {
+    "title": "Customize Your Route",
+    "subtitle": "Drag to reorder stops or remove waypoints you don't want",
+    "routeStats": {
+      "totalDistance": "Total Distance",
+      "estimatedDriving": "Estimated Driving",
+      "stops": "{{count}} stop",
+      "stops_plural": "{{count}} stops"
+    },
+    "dragToReorder": "Drag to reorder"
+  },
+  "step6": {
+    "title": "Review & Finalize",
+    "subtitle": "Your trip is ready! Review the details and export your itinerary",
+    "tripSummary": "Trip Summary",
+    "waypoints": "Waypoints",
+    "tripType": "Trip Type",
+    "duration": "Duration",
+    "distance": "Distance",
+    "estimatedDriving": "Estimated Driving Time",
+    "multiDay": "Multi-Day",
+    "dayTrip": "Day Trip",
+    "hours": "{{count}} hour",
+    "hours_plural": "{{count}} hours",
+    "days": "{{count}} day",
+    "days_plural": "{{count}} days",
+    "actions": {
+      "saveTripTitle": "Save to Account",
+      "saveTripDescription": "Save this trip to view and edit later",
+      "exportPDFTitle": "Export as PDF",
+      "exportPDFDescription": "Download a printable itinerary",
+      "shareTitle": "Share Trip",
+      "shareDescription": "Get a shareable link",
+      "emailTitle": "Email Itinerary",
+      "emailDescription": "Send to your inbox"
+    }
+  }
+}

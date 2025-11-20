@@ -341,7 +341,7 @@ const DiscoveryPage = () => {
         onFilterChange={setFilters}
         isOpen={filterSidebarOpen}
         onToggle={() => setFilterSidebarOpen(!filterSidebarOpen)}
-        eventsCount={events.length}
+        eventsCount={events.length + locations.length}
         loading={loading}
       />
 
@@ -392,7 +392,7 @@ const DiscoveryPage = () => {
           {/* Event markers */}
           {events.map((event) => (
             <Marker
-              key={event.id}
+              key={`event-${event.id}`}
               position={[event.latitude, event.longitude]}
               icon={createEventIcon(event.category)}
               eventHandlers={{
@@ -412,6 +412,32 @@ const DiscoveryPage = () => {
               </Popup>
             </Marker>
           ))}
+
+          {/* Location markers (places like camping/parking) */}
+          {locations.map((location) => (
+            <Marker
+              key={`location-${location.id}`}
+              position={[location.latitude, location.longitude]}
+              icon={createEventIcon(location.category || location.location_type)}
+              eventHandlers={{
+                click: () => setSelectedEvent(location)
+              }}
+            >
+              <Popup>
+                <div className="event-popup">
+                  <strong>{location.name}</strong>
+                  <br />
+                  {location.address && <>{location.address}<br /></>}
+                  <span className="event-popup-category">
+                    {location.category || location.location_type || 'Place'}
+                  </span>
+                  {location.distance_km && (
+                    <><br />{location.distance_km.toFixed(1)} km away</>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
       </div>
 
@@ -422,27 +448,42 @@ const DiscoveryPage = () => {
         </div>
       )}
 
-      {/* Bottom Sheet with Events */}
+      {/* Bottom Sheet with Events and Locations */}
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)}>
         <div className="events-list">
           <h2 className="events-list-title">
-            {events.length} Events Found
+            {events.length + locations.length} Results Found
+            {events.length > 0 && locations.length > 0 && (
+              <span style={{ fontSize: '0.8em', fontWeight: 'normal', marginLeft: '8px' }}>
+                ({events.length} events, {locations.length} places)
+              </span>
+            )}
           </h2>
 
-          {events.length === 0 && !loading && (
+          {events.length === 0 && locations.length === 0 && !loading && (
             <div className="no-events">
-              <p>No events found in this area.</p>
+              <p>No results found in this area.</p>
               <p>Try increasing the search radius or changing filters.</p>
             </div>
           )}
 
           {events.map((event) => (
             <EventCard
-              key={event.id}
+              key={`event-${event.id}`}
               event={event}
               isFavorited={favoriteIds.has(event.id)}
               onFavoriteToggle={handleFavoriteToggle}
               onClick={() => setSelectedEvent(event)}
+            />
+          ))}
+
+          {locations.map((location) => (
+            <EventCard
+              key={`location-${location.id}`}
+              event={location}
+              isFavorited={favoriteIds.has(location.id)}
+              onFavoriteToggle={handleFavoriteToggle}
+              onClick={() => setSelectedEvent(location)}
             />
           ))}
         </div>

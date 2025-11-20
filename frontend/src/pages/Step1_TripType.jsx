@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTripContext } from '../context/TripContext';
 import './Step1_TripType.css';
 
 const Step1_TripType = ({ onNext }) => {
+  const { t } = useTranslation(['wizard']);
   const { tripData, updateTripData } = useTripContext();
 
   const handleSelectType = (type) => {
@@ -21,14 +23,14 @@ const Step1_TripType = ({ onNext }) => {
     <div className="step1-container">
       <div className="step1-content">
         <div className="step1-hero">
-          <h1>Plan Your Next Adventure</h1>
+          <h1>{t('step1.title')}</h1>
           <p className="hero-subtitle">
-            Whether it's a weekend getaway or a day exploration, we'll help you discover amazing places
+            {t('step1.subtitle')}
           </p>
           <div className="stats">
-            <span>1000+ locations</span>
+            <span>{t('step1.stats.locations', { count: 1000 })}</span>
             <span>•</span>
-            <span>AI-powered recommendations</span>
+            <span>{t('step1.stats.aiPowered')}</span>
           </div>
         </div>
 
@@ -38,13 +40,13 @@ const Step1_TripType = ({ onNext }) => {
             onClick={() => handleSelectType('multi_day')}
           >
             <div className="card-icon">🚐</div>
-            <h2>Multi Day Trip</h2>
-            <p>Multi-day adventures with overnight stays</p>
+            <h2>{t('step1.multiDay.title')}</h2>
+            <p>{t('step1.multiDay.description')}</p>
             <ul className="features-list">
-              <li>Campsite recommendations</li>
-              <li>Multi-stop routes</li>
-              <li>Accommodation booking</li>
-              <li>Day-by-day itinerary</li>
+              <li>{t('step1.multiDay.features.campsites')}</li>
+              <li>{t('step1.multiDay.features.multiStop')}</li>
+              <li>{t('step1.multiDay.features.accommodation')}</li>
+              <li>{t('step1.multiDay.features.itinerary')}</li>
             </ul>
           </div>
 
@@ -53,13 +55,13 @@ const Step1_TripType = ({ onNext }) => {
             onClick={() => handleSelectType('day_trip')}
           >
             <div className="card-icon">🚗</div>
-            <h2>Day Trip</h2>
-            <p>Single day exploration and return</p>
+            <h2>{t('step1.dayTrip.title')}</h2>
+            <p>{t('step1.dayTrip.description')}</p>
             <ul className="features-list">
-              <li>Quick getaway planning</li>
-              <li>Local attractions</li>
-              <li>Optimized routes</li>
-              <li>Time-efficient scheduling</li>
+              <li>{t('step1.dayTrip.features.attractions')}</li>
+              <li>{t('step1.dayTrip.features.optimizedRoutes')}</li>
+              <li>{t('step1.dayTrip.features.timeManagement')}</li>
+              <li>{t('step1.dayTrip.features.localSpots')}</li>
             </ul>
           </div>
         </div>
