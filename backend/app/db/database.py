@@ -1,25 +1,57 @@
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
+from typing import Generator, AsyncGenerator
 from app.core.config import settings
 
-# Create SQLAlchemy engine
+# Create async SQLAlchemy engine
+async_engine = create_async_engine(
+    settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
+    pool_pre_ping=True,
+    echo=settings.DEBUG,
+)
+
+# Create async SessionLocal class
+AsyncSessionLocal = async_sessionmaker(
+    async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
+# Create synchronous engine for compatibility
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     echo=settings.DEBUG,
 )
 
-# Create SessionLocal class
+# Create synchronous SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_db() -> Generator[Session, None, None]:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency function to get database session.
+    Dependency function to get async database session.
     Usage in FastAPI endpoints:
         @app.get("/items")
-        def get_items(db: Session = Depends(get_db)):
+        async def get_items(db: AsyncSession = Depends(get_db)):
+            ...
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
+def get_db_sync() -> Generator[Session, None, None]:
+    """
+    Dependency function to get synchronous database session.
+    Usage in FastAPI endpoints:
+        @app.get("/items")
+        def get_items(db: Session = Depends(get_db_sync)):
             ...
     """
     db = SessionLocal()
