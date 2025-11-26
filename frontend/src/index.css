@@ -5,22 +5,40 @@
 }
 
 :root {
-  --primary-green: #10B981;
-  --secondary-blue: #3B82F6;
-  --accent-orange: #F59E0B;
-  --gray-50: #F9FAFB;
-  --gray-100: #F3F4F6;
-  --gray-200: #E5E7EB;
-  --gray-300: #D1D5DB;
-  --gray-400: #9CA3AF;
-  --gray-500: #6B7280;
-  --gray-600: #4B5563;
-  --gray-700: #374151;
-  --gray-800: #1F2937;
-  --gray-900: #111827;
-  --success-green: #059669;
-  --warning-yellow: #FBBF24;
-  --error-red: #DC2626;
+  /* Background / Base Colors - Beige Theme */
+  --desert-sand-beige: #DCCFBF;
+  --soft-clay: #C8B8A6;
+  --warm-dune-taupe: #A99887;
+
+  /* Primary Accent Colors - Natural & Adventure */
+  --weathered-leather: #8A6E4E;
+  --sunset-terra: #C57C48;
+
+  /* Secondary Accent Colors - Nature Inspired */
+  --sagebrush-green: #8EA48C;
+  --desert-sky-teal: #4F7F78;
+
+  /* Typography Colors */
+  --dark-olive-ink: #3F3A32;
+  --soft-charcoal: #6B625A;
+
+  /* Status Colors */
+  --success-green: #8EA48C;
+  --warning-yellow: #C57C48;
+  --error-red: #C5534E;
+
+  /* Legacy Aliases (for gradual migration) */
+  --primary-green: var(--sagebrush-green);
+  --secondary-blue: var(--desert-sky-teal);
+  --accent-orange: var(--sunset-terra);
+  --golden-ember: var(--weathered-leather);
+  --canyon-orange: var(--sunset-terra);
+  --teal-horizon: var(--desert-sky-teal);
+  --moss-green: var(--sagebrush-green);
+  --soft-fog-gray: var(--soft-charcoal);
+  --mist-blue: var(--soft-charcoal);
+  --deep-slate-navy: var(--desert-sand-beige);
+  --charcoal-blue: var(--soft-clay);
 }
 
 html, body {
@@ -35,8 +53,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--gray-900);
-  background-color: var(--gray-50);
+  color: var(--dark-olive-ink);
+  background: linear-gradient(180deg, var(--desert-sand-beige) 0%, var(--soft-clay) 100%);
+  background-attachment: fixed;
 }
 
 code {
@@ -77,16 +96,25 @@ button:disabled {
 input, select, textarea {
   font-family: inherit;
   font-size: 1rem;
-  border: 1px solid var(--gray-300);
-  border-radius: 0.5rem;
+  border: 1px solid rgba(169, 152, 135, 0.4);
+  border-radius: 1rem;
   padding: 0.75rem 1rem;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: rgba(220, 207, 191, 0.5);
+  color: var(--dark-olive-ink);
+  backdrop-filter: blur(10px);
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--primary-green);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: var(--weathered-leather);
+  box-shadow: 0 0 0 3px rgba(138, 110, 78, 0.2);
+  background: rgba(220, 207, 191, 0.9);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--soft-charcoal);
+  opacity: 0.7;
 }
 
 /* Utility classes */
@@ -98,53 +126,84 @@ input:focus, select:focus, textarea:focus {
 
 .btn {
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: 1.25rem;
   font-weight: 600;
   font-size: 1rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn-primary {
-  background-color: var(--primary-green);
+  background: linear-gradient(135deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
   color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(138, 110, 78, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--success-green);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(138, 110, 78, 0.4);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-blue);
+  background: linear-gradient(135deg, var(--desert-sky-teal) 0%, var(--sagebrush-green) 100%);
   color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(79, 127, 120, 0.3);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #2563EB;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 127, 120, 0.4);
 }
 
 .btn-outline {
   background-color: transparent;
-  border: 2px solid var(--gray-300);
-  color: var(--gray-700);
+  border: 2px solid rgba(107, 98, 90, 0.3);
+  color: var(--dark-olive-ink);
 }
 
 .btn-outline:hover:not(:disabled) {
-  border-color: var(--primary-green);
-  color: var(--primary-green);
+  border-color: var(--weathered-leather);
+  color: var(--weathered-leather);
+  background: rgba(138, 110, 78, 0.1);
 }
 
 .card {
-  background: white;
-  border-radius: 1rem;
+  background: rgba(200, 184, 166, 0.7);
+  border-radius: 1.5rem;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(138, 110, 78, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 30px rgba(138, 110, 78, 0.3);
+  border-color: rgba(138, 110, 78, 0.4);
 }
 
 .split-screen {
@@ -168,9 +227,58 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
+/* Custom Scrollbar - Travel Theme */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(220, 207, 191, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
+  border-radius: 10px;
+  border: 2px solid rgba(220, 207, 191, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--sunset-terra) 0%, var(--weathered-leather) 100%);
+}
+
 /* Map styles */
 .leaflet-container {
   height: 100%;
-  border-radius: 1rem;
+  border-radius: 1.5rem;
   z-index: 1;
+  border: 2px solid rgba(138, 110, 78, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Decorative Elements - Compass & Map Lines */
+.compass-decoration {
+  position: relative;
+}
+
+.compass-decoration::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(138, 110, 78, 0.4);
+  border-radius: 50%;
+  top: -20px;
+  left: -20px;
+}
+
+.compass-decoration::after {
+  content: '⊕';
+  position: absolute;
+  font-size: 1.5rem;
+  color: var(--weathered-leather);
+  opacity: 0.4;
+  top: -25px;
+  left: -15px;
 }

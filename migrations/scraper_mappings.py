@@ -343,11 +343,159 @@ class EventbriteMapping(ScraperMapping):
         return country_codes.get(country, '')
 
 
+class TicketmasterMapping(ScraperMapping):
+    """Mapping for Ticketmaster events"""
+
+    def __init__(self):
+        super().__init__()
+        self.scraper_id = 4
+        self.scraper_name = "Ticketmaster Events"
+        self.schema_name = "scraper_4"
+        self.data_type = DataType.COMBINED  # Creates both location and event
+        self.source_name = "other"  # Ticketmaster not in enum yet, using 'other'
+
+    def get_query(self) -> str:
+        return f"""
+            SELECT * FROM {self.schema_name}.events
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            ORDER BY id
+        """
+
+    def map_to_location(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Map Ticketmaster venue to tripflow location"""
+        venue_name = row.get('venue_name') or f"Venue {row.get('venue_id', 'Unknown')}"
+
+        return {
+            "external_id": f"ticketmaster_venue_{row.get('venue_id', row.get('id'))}",
+            "source": "other",
+            "source_url": row.get('url'),
+            "name": venue_name[:500] if venue_name else "Unknown Venue",
+            "description": None,
+            "location_type": "EVENT",
+            "latitude": float(row['latitude']) if row.get('latitude') else None,
+            "longitude": float(row['longitude']) if row.get('longitude') else None,
+            "address": row.get('venue_address'),
+            "city": row.get('city'),
+            "postal_code": row.get('postal_code'),
+            "country": row.get('country'),
+            "country_code": row.get('country_code'),
+            "is_active": True
+        }
+
+    def map_to_event(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Map Ticketmaster event to tripflow event"""
+        # Parse themes from genre and segment
+        themes = []
+        if row.get('genre'):
+            themes.append(row['genre'])
+        if row.get('segment'):
+            themes.append(row['segment'])
+
+        # Parse classifications if available
+        if row.get('classifications'):
+            # classifications is text field, might need parsing
+            pass
+
+        return {
+            "external_id": row.get('event_id') or str(row.get('id')),
+            "source": "other",
+            "name": row.get('name', 'Untitled Event')[:500],
+            "description": row.get('description') or row.get('info'),
+            "event_type": row.get('genre') or row.get('segment') or 'Other',
+            "start_date": row.get('start_date'),
+            "end_date": None,  # Ticketmaster doesn't provide end date
+            "organizer": row.get('promoter_name'),
+            "themes": themes,
+            "booking_url": row.get('url'),
+            "price_min": row.get('price_min'),
+            "price_max": row.get('price_max'),
+            "is_cancelled": row.get('status_code') == 'cancelled'
+        }
+
+
+class CamperContactMapping(ScraperMapping):
+    """Mapping for CamperContact camping/parking locations"""
+
+    def __init__(self):
+        super().__init__()
+        self.scraper_id = 5
+        self.scraper_name = "CamperContact Grid Scraper"
+        self.schema_name = "scraper_5"
+        self.data_type = DataType.LOCATION
+        self.source_name = "other"  # CamperContact not in enum yet, using 'other'
+
+    def get_query(self) -> str:
+        return f"""
+            SELECT * FROM {self.schema_name}.places
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            ORDER BY id
+        """
+
+    def map_to_location(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Map CamperContact place to tripflow location"""
+
+        # Parse raw_data JSON if available
+        raw_data = row.get('raw_data', {})
+        if isinstance(raw_data, str):
+            import json
+            try:
+                raw_data = json.loads(raw_data)
+            except:
+                raw_data = {}
+
+        # Map location type
+        place_type = row.get('type', '').lower()
+        location_type = 'CAMPSITE' if 'camper' in place_type else 'PARKING'
+
+        # Build name from data
+        sitecode = row.get('sitecode')
+        name = f"CamperContact #{sitecode}" if sitecode else f"CamperContact {row.get('poi_id', row['id'])}"
+
+        # Build source URL
+        source_url = f"https://www.campercontact.com/en/campsite/{sitecode}" if sitecode else None
+
+        # Parse features
+        features = []
+        if row.get('is_bookable'):
+            features.append('bookable')
+        if row.get('is_claimed'):
+            features.append('verified')
+
+        return {
+            "external_id": f"campercontact_{row.get('poi_id', row['id'])}",
+            "source": "other",
+            "source_url": source_url,
+            "name": name[:500],
+            "description": None,
+            "location_type": location_type,
+            "latitude": float(row['latitude']) if row.get('latitude') else None,
+            "longitude": float(row['longitude']) if row.get('longitude') else None,
+            "address": None,
+            "city": None,
+            "postal_code": None,
+            "country": None,
+            "country_code": None,
+            "rating": None,
+            "price_type": 'unknown',
+            "price_min": None,
+            "price_max": None,
+            "amenities": [],
+            "features": features,
+            "tags": [place_type] if place_type else [],
+            "images": [],
+            "main_image_url": None,
+            "is_active": True,
+            "raw_data": raw_data
+        }
+
+
 # Registry of all scraper mappings
 SCRAPER_REGISTRY = {
     1: Park4NightMapping(),      # scraper_1: Park4Night places
     2: UiTinVlaanderenMapping(), # scraper_2: UiT events
     3: EventbriteMapping(),      # scraper_3: Eventbrite events
+    4: TicketmasterMapping(),    # scraper_4: Ticketmaster events
+    5: CamperContactMapping(),   # scraper_5: CamperContact places
     # Add new scrapers here as they're added to scraparr
 }
 
@@ -356,6 +504,8 @@ SCHEMA_REGISTRY = {
     'scraper_1': Park4NightMapping(),
     'scraper_2': UiTinVlaanderenMapping(),
     'scraper_3': EventbriteMapping(),
+    'scraper_4': TicketmasterMapping(),
+    'scraper_5': CamperContactMapping(),
 }
 
 

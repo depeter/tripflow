@@ -4,8 +4,8 @@
   top: 70px; /* Below header */
   bottom: 0;
   width: 380px;
-  background: white;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
+  background: var(--soft-clay);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
   z-index: 600;
   display: flex;
   flex-direction: column;
@@ -28,19 +28,19 @@
   transform: translateY(-50%);
   width: 40px;
   height: 60px;
-  background: white;
+  background: var(--soft-clay);
   border: none;
   border-radius: 8px 0 0 8px;
   box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   font-size: 20px;
-  color: #2c3e50;
+  color: var(--dark-olive-ink);
   display: none; /* Hidden on desktop */
   transition: background 0.2s;
 }
 
 .results-panel-toggle:hover {
-  background: #f8f9fa;
+  background: var(--desert-sand-beige);
 }
 
 /* Panel content */
@@ -54,8 +54,8 @@
 /* Header */
 .results-panel-header {
   padding: 20px;
-  border-bottom: 2px solid #ecf0f1;
-  background: #f8f9fa;
+  border-bottom: 2px solid rgba(138, 110, 78, 0.2);
+  background: var(--desert-sand-beige);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -79,9 +79,9 @@
   margin: 4px 0 0 0;
 }
 
-/* Close button in header (mobile/tablet only) */
+/* Close button in header (visible on all screen sizes) */
 .results-close-btn {
-  display: none;
+  display: flex;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -196,12 +196,9 @@
   background: #a0aec0;
 }
 
-/* Desktop: always visible */
+/* Desktop: closeable with close button */
 @media (min-width: 1025px) {
-  .results-panel {
-    transform: translateX(0) !important;
-  }
-
+  /* Allow panel to be toggled on desktop */
   .results-panel-toggle {
     display: none;
   }

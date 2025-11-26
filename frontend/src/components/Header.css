@@ -1,12 +1,13 @@
 /* Header Component Styles */
 
 .header {
-  background: white;
-  border-bottom: 1px solid var(--gray-200);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, rgba(200, 184, 166, 0.95) 0%, rgba(220, 207, 191, 0.95) 100%);
+  border-bottom: 1px solid rgba(138, 110, 78, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(20px);
 }
 
 .header-container {
@@ -34,7 +35,10 @@
 .header-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--gray-900);
+  background: linear-gradient(135deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-nav {
@@ -45,15 +49,16 @@
 
 .nav-link {
   text-decoration: none;
-  color: var(--gray-700);
+  color: var(--dark-olive-ink);
   font-weight: 500;
   font-size: 1rem;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
+  padding: 0.5rem 0;
 }
 
 .nav-link:hover {
-  color: var(--primary-green);
+  color: var(--weathered-leather);
 }
 
 .nav-link::after {
@@ -63,9 +68,10 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: var(--primary-green);
+  background: linear-gradient(90deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
   transform: scaleX(0);
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
+  border-radius: 2px;
 }
 
 .nav-link:hover::after {
@@ -96,14 +102,14 @@
 }
 
 .user-menu-button:hover {
-  background-color: var(--gray-100);
+  background-color: rgba(169, 152, 135, 0.2);
 }
 
 .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-blue) 100%);
+  background: linear-gradient(135deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,6 +117,8 @@
   font-weight: 600;
   font-size: 0.9rem;
   overflow: hidden;
+  border: 2px solid rgba(138, 110, 78, 0.4);
+  box-shadow: 0 2px 10px rgba(138, 110, 78, 0.3);
 }
 
 .user-avatar img {
@@ -133,13 +141,14 @@
   top: calc(100% + 0.5rem);
   right: 0;
   min-width: 280px;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--gray-200);
+  background: linear-gradient(135deg, rgba(200, 184, 166, 0.98) 0%, rgba(220, 207, 191, 0.98) 100%);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(138, 110, 78, 0.4);
   padding: 0.5rem;
   z-index: 1000;
   animation: fadeInDown 0.2s ease;
+  backdrop-filter: blur(20px);
 }
 
 @keyframes fadeInDown {
@@ -163,20 +172,20 @@
 
 .user-name {
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--dark-olive-ink);
   font-size: 1rem;
   margin: 0 0 0.25rem 0;
 }
 
 .user-email {
-  color: var(--gray-600);
+  color: var(--soft-charcoal);
   font-size: 0.85rem;
   margin: 0;
 }
 
 .subscription-badge {
   display: inline-block;
-  background: linear-gradient(135deg, var(--accent-orange) 0%, var(--warning-yellow) 100%);
+  background: linear-gradient(135deg, var(--sunset-terra) 0%, var(--weathered-leather) 100%);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
@@ -196,10 +205,10 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  color: var(--gray-700);
+  color: var(--dark-olive-ink);
   text-decoration: none;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
   cursor: pointer;
   border: none;
   background: transparent;
@@ -209,8 +218,9 @@
 }
 
 .user-menu-item:hover {
-  background-color: var(--gray-100);
-  color: var(--gray-900);
+  background: rgba(138, 110, 78, 0.15);
+  color: var(--weathered-leather);
+  transform: translateX(4px);
 }
 
 .user-menu-item svg {

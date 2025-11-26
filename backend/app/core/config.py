@@ -23,10 +23,13 @@ class Settings(BaseSettings):
     SCRAPARR_DB_USER: str = "scraparr"
     SCRAPARR_DB_PASSWORD: str = "scraparr"
 
-    # Source databases for import/sync (legacy)
+    # Source databases for import/sync (all from Scraparr)
     SOURCE_DB_PARK4NIGHT: Optional[str] = None
     SOURCE_DB_CAMPERCONTACT: Optional[str] = None
     SOURCE_DB_LOCAL_SITES: Optional[str] = None
+    SOURCE_DB_UITINVLAANDEREN: Optional[str] = None
+    SOURCE_DB_EVENTBRITE: Optional[str] = None
+    SOURCE_DB_TICKETMASTER: Optional[str] = None
 
     # Qdrant Vector Database
     QDRANT_HOST: str = "localhost"

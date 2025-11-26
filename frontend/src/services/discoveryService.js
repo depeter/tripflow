@@ -24,19 +24,34 @@ const discoveryService = {
    */
   searchEvents: async (params) => {
     try {
-      const response = await apiClient.post('/discover', {
+      // Build the request payload with proper structure
+      const payload = {
         latitude: params.latitude,
         longitude: params.longitude,
         radius_km: params.radius_km || 25,
         item_types: params.item_types || null,
-        categories: params.categories || null,
-        event_types: params.event_types || null,
         search_text: params.search_text || null,
-        start_date: params.start_date || null,
-        end_date: params.end_date || null,
-        free_only: params.free_only || false,
         limit: params.limit || 50,
-      });
+      };
+
+      // Add nested event_filters if provided
+      if (params.event_filters) {
+        payload.event_filters = params.event_filters;
+      }
+
+      // Add nested location_filters if provided
+      if (params.location_filters) {
+        payload.location_filters = params.location_filters;
+      }
+
+      // Legacy support for flat parameters (will be removed eventually)
+      if (params.categories) payload.categories = params.categories;
+      if (params.event_types) payload.event_types = params.event_types;
+      if (params.start_date) payload.start_date = params.start_date;
+      if (params.end_date) payload.end_date = params.end_date;
+      if (params.free_only !== undefined) payload.free_only = params.free_only;
+
+      const response = await apiClient.post('/discover', payload);
       return response.data;
     } catch (error) {
       console.error('Error searching events:', error);

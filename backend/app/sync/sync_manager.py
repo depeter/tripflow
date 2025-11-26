@@ -7,6 +7,9 @@ from app.db.database import get_source_db_connection
 from .park4night_importer import Park4NightImporter
 from .campercontact_importer import CamperContactImporter
 from .local_sites_importer import LocalSitesImporter
+from .uitinvlaanderen_importer import UiTinVlaanderenImporter
+from .eventbrite_importer import EventbriteImporter
+from .ticketmaster_importer import TicketmasterImporter
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,9 @@ class SyncManager:
             "park4night": Park4NightImporter,
             "campercontact": CamperContactImporter,
             "local_sites": LocalSitesImporter,
+            "uitinvlaanderen": UiTinVlaanderenImporter,
+            "eventbrite": EventbriteImporter,
+            "ticketmaster": TicketmasterImporter,
         }
 
     def sync_source(
@@ -34,7 +40,8 @@ class SyncManager:
         Sync data from a specific source database.
 
         Args:
-            source_name: Name of source ('park4night', 'campercontact', 'local_sites')
+            source_name: Name of source ('park4night', 'campercontact', 'local_sites',
+                         'uitinvlaanderen', 'eventbrite', 'ticketmaster')
             batch_size: Number of records per batch
             limit: Optional limit on records to import
 

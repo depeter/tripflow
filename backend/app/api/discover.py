@@ -60,15 +60,30 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
         )
 
         # Use new structured filters if provided, otherwise fall back to legacy
-        event_filters = params.event_filters or {}
-        categories = event_filters.get('categories') or params.categories
-        event_types = event_filters.get('event_types') or params.event_types
-        date_start = event_filters.get('date_start') or params.start_date
-        date_end = event_filters.get('date_end') or params.end_date
-        free_only = event_filters.get('free_only') if params.event_filters else params.free_only
-        price_min = event_filters.get('price_min')
-        price_max = event_filters.get('price_max')
-        time_of_day = event_filters.get('time_of_day')
+        if params.event_filters:
+            categories = params.event_filters.categories or params.categories
+            event_types = params.event_filters.event_types or params.event_types
+            date_start = params.event_filters.date_start or params.start_date
+            date_end = params.event_filters.date_end or params.end_date
+            free_only = params.event_filters.free_only
+            price_min = params.event_filters.price_min
+            price_max = params.event_filters.price_max
+            time_of_day = params.event_filters.time_of_day
+        else:
+            categories = params.categories
+            event_types = params.event_types
+            date_start = params.start_date
+            date_end = params.end_date
+            free_only = params.free_only
+            price_min = None
+            price_max = None
+            time_of_day = None
+
+        # Convert timezone-aware datetimes to naive (DB uses TIMESTAMP WITHOUT TIME ZONE)
+        if date_start and date_start.tzinfo is not None:
+            date_start = date_start.replace(tzinfo=None)
+        if date_end and date_end.tzinfo is not None:
+            date_end = date_end.replace(tzinfo=None)
 
         # Filter by categories if specified
         if categories:
@@ -216,16 +231,26 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
         )
 
         # Use new structured location filters if provided
-        location_filters = params.location_filters or {}
-        location_types = location_filters.get('location_types')
-        min_rating = location_filters.get('min_rating')
-        price_types = location_filters.get('price_types')
-        amenities = location_filters.get('amenities')
-        features = location_filters.get('features')
-        open_now = location_filters.get('open_now', False)
-        is_24_7 = location_filters.get('is_24_7', False)
-        no_booking_required = location_filters.get('no_booking_required', False)
-        min_capacity = location_filters.get('min_capacity')
+        if params.location_filters:
+            location_types = params.location_filters.location_types
+            min_rating = params.location_filters.min_rating
+            price_types = params.location_filters.price_types
+            amenities = params.location_filters.amenities
+            features = params.location_filters.features
+            open_now = params.location_filters.open_now
+            is_24_7 = params.location_filters.is_24_7
+            no_booking_required = params.location_filters.no_booking_required
+            min_capacity = params.location_filters.min_capacity
+        else:
+            location_types = None
+            min_rating = None
+            price_types = None
+            amenities = None
+            features = None
+            open_now = False
+            is_24_7 = False
+            no_booking_required = False
+            min_capacity = None
 
         # Filter by location types
         if location_types:

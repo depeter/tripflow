@@ -52,44 +52,14 @@ const SharedFilters = ({
     onFilterChange({ ...filters, radiusKm: Number(e.target.value) });
   };
 
-  const handleShowToggle = (type) => {
-    if (type === 'events') {
-      onFilterChange({ ...filters, showEvents: !filters.showEvents });
-    } else if (type === 'locations') {
-      onFilterChange({ ...filters, showLocations: !filters.showLocations });
-    }
+  const handleTypeChange = (type) => {
+    onFilterChange({ ...filters, selectedType: type });
   };
 
   return (
     <div className="shared-filters">
-      {/* Show Filter (Events/Locations/Both) */}
-      <div className="filter-section">
-        <h3>Show</h3>
-        <div className="filter-show-options">
-          <label className="filter-checkbox-label">
-            <input
-              type="checkbox"
-              checked={filters.showEvents !== false}
-              onChange={() => handleShowToggle('events')}
-              className="filter-checkbox"
-            />
-            <span className="filter-checkbox-text">🎉 Events</span>
-          </label>
-          <label className="filter-checkbox-label">
-            <input
-              type="checkbox"
-              checked={filters.showLocations !== false}
-              onChange={() => handleShowToggle('locations')}
-              className="filter-checkbox"
-            />
-            <span className="filter-checkbox-text">📍 Places</span>
-          </label>
-        </div>
-      </div>
-
       {/* Search Box */}
       <div className="filter-section">
-        <h3>Search</h3>
         <form onSubmit={handleSearchSubmit} className="filter-search-form">
           <input
             type="text"
@@ -108,9 +78,9 @@ const SharedFilters = ({
         </form>
       </div>
 
-      {/* Radius */}
-      <div className="filter-section">
-        <h3>Distance</h3>
+      {/* Radius - inline label */}
+      <div className="filter-section filter-section-inline">
+        <label className="filter-inline-label">Distance</label>
         <div className="filter-radius">
           <select
             value={filters.radiusKm}
@@ -123,6 +93,26 @@ const SharedFilters = ({
             <option value={50}>50 km</option>
             <option value={100}>100 km</option>
           </select>
+        </div>
+      </div>
+
+      {/* Type Tabs (Events/Locations) */}
+      <div className="filter-section">
+        <div className="filter-tabs">
+          <button
+            type="button"
+            className={`filter-tab ${filters.selectedType === 'events' ? 'active' : ''}`}
+            onClick={() => handleTypeChange('events')}
+          >
+            🎉 Events
+          </button>
+          <button
+            type="button"
+            className={`filter-tab ${filters.selectedType === 'locations' ? 'active' : ''}`}
+            onClick={() => handleTypeChange('locations')}
+          >
+            📍 Places
+          </button>
         </div>
       </div>
     </div>

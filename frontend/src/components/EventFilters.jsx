@@ -21,18 +21,6 @@ const EventFilters = ({
     { value: 'OTHER', label: 'Other', icon: '📍' }
   ];
 
-  // Event types
-  const eventTypes = [
-    'festival',
-    'workshop',
-    'exhibition',
-    'performance',
-    'conference',
-    'market',
-    'sports',
-    'concert',
-    'party'
-  ];
 
   // Time of day options
   const timeOfDayOptions = [
@@ -65,20 +53,6 @@ const EventFilters = ({
     });
   };
 
-  const handleEventTypeToggle = (eventType) => {
-    const currentTypes = filters.eventFilters?.eventTypes || [];
-    const newTypes = currentTypes.includes(eventType)
-      ? currentTypes.filter(t => t !== eventType)
-      : [...currentTypes, eventType];
-
-    onFilterChange({
-      ...filters,
-      eventFilters: {
-        ...filters.eventFilters,
-        eventTypes: newTypes
-      }
-    });
-  };
 
   const handleTimeOfDayToggle = (timeValue) => {
     const currentTimes = filters.eventFilters?.timeOfDay || [];
@@ -174,7 +148,6 @@ const EventFilters = ({
   // Count active filters
   const activeFilterCount = [
     (filters.eventFilters?.categories?.length || 0),
-    (filters.eventFilters?.eventTypes?.length || 0),
     (filters.eventFilters?.timeOfDay?.length || 0),
     (filters.eventFilters?.freeOnly ? 1 : 0),
     (filters.eventFilters?.dateStart ? 1 : 0),
@@ -252,26 +225,6 @@ const EventFilters = ({
                   <span className="filter-chip-icon">{category.icon}</span>
                   <span className="filter-chip-label">{category.label}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Event Types */}
-          <div className="filter-subsection">
-            <h4>🏷️ Event Type</h4>
-            <div className="filter-checkboxes">
-              {eventTypes.map(type => (
-                <label key={type} className="filter-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(filters.eventFilters?.eventTypes || []).includes(type)}
-                    onChange={() => handleEventTypeToggle(type)}
-                    className="filter-checkbox"
-                  />
-                  <span className="filter-checkbox-text">
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </span>
-                </label>
               ))}
             </div>
           </div>

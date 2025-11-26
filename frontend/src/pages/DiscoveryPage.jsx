@@ -158,15 +158,13 @@ const DiscoveryPage = () => {
   // Filter state - restructured for type-specific filtering
   const [filters, setFilters] = useState({
     // Shared filters
-    showEvents: true,
-    showLocations: true,
+    selectedType: 'events', // 'events' or 'locations'
     searchText: '',
     radiusKm: 25,
 
     // Event-specific filters
     eventFilters: {
       categories: [],
-      eventTypes: [],
       dateStart: null,
       dateEnd: null,
       datePreset: null,
@@ -270,32 +268,35 @@ const DiscoveryPage = () => {
     setLoading(true);
 
     try {
-      // Build item_types array based on filters
-      const item_types = [];
-      if (filters.showEvents) item_types.push('events');
-      if (filters.showLocations) item_types.push('locations');
+      // Build item_types array based on selected type
+      const item_types = [filters.selectedType];
 
-      const response = await discoveryService.searchEvents({
+      // Flatten event filters to top-level parameters (discoveryService expects flat structure)
+      const apiParams = {
         latitude: searchLocation.lat,
         longitude: searchLocation.lng,
         radius_km: filters.radiusKm,
-        item_types: item_types.length > 0 ? item_types : ['events', 'locations'],
+        item_types: item_types,
         search_text: filters.searchText.trim() || null,
+        limit: 50
+      };
 
-        // Event-specific filters
-        event_filters: filters.showEvents ? {
+      // Add event-specific filters as nested object
+      if (filters.selectedType === 'events') {
+        apiParams.event_filters = {
           categories: filters.eventFilters.categories.length > 0 ? filters.eventFilters.categories : null,
-          event_types: filters.eventFilters.eventTypes.length > 0 ? filters.eventFilters.eventTypes : null,
           date_start: filters.eventFilters.dateStart || null,
           date_end: filters.eventFilters.dateEnd || null,
           price_min: filters.eventFilters.priceMin || null,
           price_max: filters.eventFilters.priceMax || null,
           free_only: filters.eventFilters.freeOnly || false,
           time_of_day: filters.eventFilters.timeOfDay.length > 0 ? filters.eventFilters.timeOfDay : null
-        } : null,
+        };
+      }
 
-        // Location-specific filters
-        location_filters: filters.showLocations ? {
+      // Add location-specific filters as nested object
+      if (filters.selectedType === 'locations') {
+        apiParams.location_filters = {
           location_types: filters.locationFilters.locationTypes.length > 0 ? filters.locationFilters.locationTypes : null,
           min_rating: filters.locationFilters.minRating || null,
           price_types: filters.locationFilters.priceTypes.length > 0 ? filters.locationFilters.priceTypes : null,
@@ -305,13 +306,19 @@ const DiscoveryPage = () => {
           is_24_7: filters.locationFilters.is24_7 || false,
           no_booking_required: filters.locationFilters.noBookingRequired || false,
           min_capacity: filters.locationFilters.minCapacity || null
-        } : null,
+        };
+      }
 
-        limit: 50
-      });
+      const response = await discoveryService.searchEvents(apiParams);
 
-      setEvents(response.events || []);
-      setLocations(response.locations || []);
+      // Set results based on selected type
+      if (filters.selectedType === 'events') {
+        setEvents(response.events || []);
+        setLocations([]);
+      } else {
+        setEvents([]);
+        setLocations(response.locations || []);
+      }
       setResultsPanelOpen(true);
     } catch (error) {
       console.error('Error searching:', error);
@@ -414,7 +421,7 @@ const DiscoveryPage = () => {
       />
 
       {/* Map Container */}
-      <div className={`discovery-map ${filterSidebarOpen ? 'with-sidebar' : ''}`}>
+      <div className={`discovery-map ${filterSidebarOpen ? 'with-sidebar' : ''} ${resultsPanelOpen ? 'with-results' : ''}`}>
         {/* Center marker to show search location */}
         <div className="map-center-marker">
           <div className="map-center-crosshair">

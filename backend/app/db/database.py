@@ -72,7 +72,8 @@ def get_source_db_connection(db_name: str):
     Get connection to source database for syncing.
 
     Args:
-        db_name: One of 'park4night', 'campercontact', 'local_sites'
+        db_name: One of 'park4night', 'campercontact', 'local_sites',
+                 'uitinvlaanderen', 'eventbrite', 'ticketmaster'
 
     Returns:
         SQLAlchemy engine for the source database
@@ -81,6 +82,9 @@ def get_source_db_connection(db_name: str):
         "park4night": settings.SOURCE_DB_PARK4NIGHT,
         "campercontact": settings.SOURCE_DB_CAMPERCONTACT,
         "local_sites": settings.SOURCE_DB_LOCAL_SITES,
+        "uitinvlaanderen": settings.SOURCE_DB_UITINVLAANDEREN,
+        "eventbrite": settings.SOURCE_DB_EVENTBRITE,
+        "ticketmaster": settings.SOURCE_DB_TICKETMASTER,
     }
 
     db_url = db_urls.get(db_name)

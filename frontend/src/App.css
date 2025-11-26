@@ -12,18 +12,23 @@
 }
 
 .wizard-header {
-  background: white;
-  border-bottom: 1px solid var(--gray-200);
+  background: linear-gradient(135deg, rgba(200, 184, 166, 0.95) 0%, rgba(220, 207, 191, 0.95) 100%);
+  border-bottom: 1px solid rgba(138, 110, 78, 0.3);
   padding: 1rem 2rem;
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .wizard-logo {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary-green);
+  background: linear-gradient(135deg, var(--weathered-leather) 0%, var(--sunset-terra) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -37,12 +42,14 @@
 }
 
 .wizard-footer {
-  background: white;
-  border-top: 1px solid var(--gray-200);
+  background: linear-gradient(135deg, rgba(200, 184, 166, 0.95) 0%, rgba(220, 207, 191, 0.95) 100%);
+  border-top: 1px solid rgba(138, 110, 78, 0.3);
   padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .step-container {

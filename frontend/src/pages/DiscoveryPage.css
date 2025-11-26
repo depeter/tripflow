@@ -19,8 +19,8 @@
   .discovery-map.with-sidebar {
     margin-left: 350px;
   }
-  /* Always adjust for results panel on desktop */
-  .discovery-map {
+  /* Adjust for results panel when it's open on desktop */
+  .discovery-map.with-results {
     margin-right: 380px;
   }
 }

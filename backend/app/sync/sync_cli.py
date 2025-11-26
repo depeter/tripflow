@@ -30,7 +30,7 @@ def cli():
 
 
 @cli.command()
-@click.option('--source', type=click.Choice(['park4night', 'campercontact', 'local_sites']), help='Specific source to sync')
+@click.option('--source', type=click.Choice(['park4night', 'campercontact', 'local_sites', 'uitinvlaanderen', 'eventbrite', 'ticketmaster']), help='Specific source to sync')
 @click.option('--all', 'sync_all', is_flag=True, help='Sync all sources')
 @click.option('--batch-size', default=100, help='Batch size for processing')
 @click.option('--limit', type=int, help='Limit number of records (for testing)')
@@ -90,7 +90,7 @@ def sync(source, sync_all, batch_size, limit):
 
 
 @cli.command()
-@click.option('--source', type=click.Choice(['park4night', 'campercontact', 'local_sites']), required=True)
+@click.option('--source', type=click.Choice(['park4night', 'campercontact', 'local_sites', 'uitinvlaanderen', 'eventbrite', 'ticketmaster']), required=True)
 def test_connection(source):
     """Test connection to a source database"""
     from app.db.database import get_source_db_connection

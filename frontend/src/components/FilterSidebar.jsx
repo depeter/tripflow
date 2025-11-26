@@ -20,9 +20,8 @@ const FilterSidebar = ({
     if (filters.searchText?.trim()) count++;
 
     // Count event filters
-    if (filters.showEvents) {
+    if (filters.selectedType === 'events') {
       count += filters.eventFilters?.categories?.length || 0;
-      count += filters.eventFilters?.eventTypes?.length || 0;
       count += filters.eventFilters?.timeOfDay?.length || 0;
       if (filters.eventFilters?.freeOnly) count++;
       if (filters.eventFilters?.dateStart) count++;
@@ -30,7 +29,7 @@ const FilterSidebar = ({
     }
 
     // Count location filters
-    if (filters.showLocations) {
+    if (filters.selectedType === 'locations') {
       count += filters.locationFilters?.locationTypes?.length || 0;
       count += filters.locationFilters?.amenities?.length || 0;
       count += filters.locationFilters?.features?.length || 0;
@@ -47,14 +46,12 @@ const FilterSidebar = ({
 
   const handleClearFilters = () => {
     onFilterChange({
-      showEvents: true,
-      showLocations: true,
+      selectedType: filters.selectedType, // Keep selected type
       searchText: '',
       radiusKm: filters.radiusKm, // Keep radius
 
       eventFilters: {
         categories: [],
-        eventTypes: [],
         dateStart: null,
         dateEnd: null,
         datePreset: null,
@@ -81,11 +78,6 @@ const FilterSidebar = ({
   const activeFilterCount = countActiveFilters();
   const hasActiveFilters = activeFilterCount > 0;
 
-  // Determine which filter sections to show
-  const showBoth = filters.showEvents && filters.showLocations;
-  const showOnlyEvents = filters.showEvents && !filters.showLocations;
-  const showOnlyLocations = !filters.showEvents && filters.showLocations;
-
   return (
     <>
       {/* Mobile Toggle Button */}
@@ -104,7 +96,6 @@ const FilterSidebar = ({
       {/* Sidebar */}
       <div className={`filter-sidebar ${isOpen ? 'open' : ''}`}>
         <div className="filter-sidebar-header">
-          <h2>🔍 Filters</h2>
           <button
             className="filter-close-btn"
             onClick={onToggle}
@@ -122,32 +113,19 @@ const FilterSidebar = ({
             loading={loading}
           />
 
-          {/* Conditional Rendering based on selected types */}
-          {showOnlyEvents && (
+          {/* Conditional Rendering based on selected type */}
+          {filters.selectedType === 'events' && (
             <EventFilters
               filters={filters}
               onFilterChange={onFilterChange}
             />
           )}
 
-          {showOnlyLocations && (
+          {filters.selectedType === 'locations' && (
             <LocationFilters
               filters={filters}
               onFilterChange={onFilterChange}
             />
-          )}
-
-          {showBoth && (
-            <>
-              <EventFilters
-                filters={filters}
-                onFilterChange={onFilterChange}
-              />
-              <LocationFilters
-                filters={filters}
-                onFilterChange={onFilterChange}
-              />
-            </>
           )}
 
           {/* Results Summary */}
