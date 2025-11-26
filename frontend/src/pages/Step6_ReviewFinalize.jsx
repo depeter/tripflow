@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTripContext } from '../context/TripContext';
 import MapView from '../components/MapView';
+import SafeHtml from '../components/SafeHtml';
 import { format } from 'date-fns';
 import { createTrip } from '../services/tripsService';
 import { generateTripPDF } from '../services/pdfService';
@@ -172,7 +173,9 @@ const Step6_ReviewFinalize = ({ onBack }) => {
                       {wp.type} • ⭐{wp.rating}
                       {wp.price_per_night > 0 && ` • €${wp.price_per_night}/night`}
                     </div>
-                    {wp.description && <div className="itinerary-description">{wp.description}</div>}
+                    {wp.description && (
+                      <SafeHtml html={wp.description} className="itinerary-description" />
+                    )}
                     {wp.tags && (
                       <div className="itinerary-tags">
                         {wp.tags.map((tag, tagIdx) => (

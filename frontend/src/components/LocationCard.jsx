@@ -1,5 +1,6 @@
 import React from 'react';
 import './LocationCard.css';
+import SafeHtml from './SafeHtml';
 
 const LocationCard = ({ location, onAddToTrip, onViewDetails, isSelected = false }) => {
   const { name, type, rating, price_per_night, distance_from_start, match_score, tags, image_url, description } = location;
@@ -74,7 +75,7 @@ const LocationCard = ({ location, onAddToTrip, onViewDetails, isSelected = false
         )}
 
         {description && (
-          <p className="location-description">{description}</p>
+          <SafeHtml html={description} className="location-description" />
         )}
 
         <div className="card-actions">

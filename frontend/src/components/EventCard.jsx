@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './EventCard.css';
+import SafeHtml from './SafeHtml';
 
 /**
  * EventCard Component
@@ -7,6 +8,14 @@ import './EventCard.css';
  */
 const EventCard = ({ event, onFavoriteToggle, isFavorited, onClick }) => {
   const [imageError, setImageError] = useState(false);
+
+  // Strip HTML tags for length calculation
+  const stripHtml = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -135,11 +144,18 @@ const EventCard = ({ event, onFavoriteToggle, isFavorited, onClick }) => {
         </div>
 
         {event.description && (
-          <p className="event-description">
-            {event.description.length > 120
-              ? `${event.description.substring(0, 120)}...`
-              : event.description}
-          </p>
+          <div className="event-description">
+            {(() => {
+              const plainText = stripHtml(event.description);
+              const shouldTruncate = plainText.length > 120;
+
+              return shouldTruncate ? (
+                <span>{plainText.substring(0, 120)}...</span>
+              ) : (
+                <SafeHtml html={event.description} />
+              );
+            })()}
+          </div>
         )}
 
         <div className="event-card-footer">
