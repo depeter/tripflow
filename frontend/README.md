@@ -1,37 +1,36 @@
-# TripFlow Frontend
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-React-based frontend for TripFlow travel planning application.
+## Getting Started
 
-## Setup
+First, run the development server:
 
 ```bash
-npm install
-npm start
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-The app will run on `http://localhost:3000`
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Features (To Be Implemented)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-- Flow-based trip planning interface
-- Interactive map with location markers
-- Personalized recommendations display
-- Trip waypoint management
-- Event discovery
-- User preference configuration
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Development
+## Learn More
 
-This is a React app created with Create React App. The main components to implement:
+To learn more about Next.js, take a look at the following resources:
 
-1. **TripFlow Component**: Step-by-step trip planning wizard
-2. **MapView Component**: Interactive map with Leaflet
-3. **LocationCard Component**: Display location details
-4. **RecommendationsList Component**: Show personalized suggestions
-5. **TripSummary Component**: Display trip stats and route
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## API Integration
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-The frontend communicates with the FastAPI backend at `http://localhost:8000/api/v1`
+## Deploy on Vercel
 
-See `src/services/api.js` for API client implementation.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

@@ -1,33 +1,35 @@
-# Multi-stage build for production React app
-
-# Stage 1: Build the React application
-FROM node:18-alpine AS builder
+# Build stage
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
-# Install dependencies (including dev dependencies needed for build)
-RUN npm ci --legacy-peer-deps
+# Install dependencies
+RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy source files and config
+COPY src ./src
+COPY public ./public
+COPY next.config.mjs ./
+COPY tsconfig.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.mjs ./
 
-# Build the application
+# Build static export
 RUN npm run build
 
-# Stage 2: Serve with nginx
+# Production stage - nginx to serve static files
 FROM nginx:alpine
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built files from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
+# Copy static export from builder
+COPY --from=builder /app/out /usr/share/nginx/html
 
-# Expose port 80
+# Expose port
 EXPOSE 80
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

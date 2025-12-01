@@ -281,6 +281,7 @@ class TripPlanningService:
                 "total_distance_km": 0,
                 "num_stops": 0,
                 "estimated_driving_hours": 0,
+                "estimated_driving_days": 0,
             }
 
         # Calculate total distance
@@ -336,3 +337,30 @@ class TripPlanningService:
 
         logger.info(f"Finalized trip {trip_id}")
         return trip
+
+    def delete_trip(self, trip_id: int, user_id: int) -> bool:
+        """
+        Delete a trip.
+
+        Args:
+            trip_id: Trip ID
+            user_id: User ID (to verify ownership)
+
+        Returns:
+            True if deleted successfully
+
+        Raises:
+            ValueError: If trip not found or user doesn't own it
+        """
+        trip = self.db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            raise ValueError(f"Trip {trip_id} not found")
+
+        if trip.user_id != user_id:
+            raise ValueError("Not authorized to delete this trip")
+
+        self.db.delete(trip)
+        self.db.commit()
+
+        logger.info(f"Deleted trip {trip_id}")
+        return True

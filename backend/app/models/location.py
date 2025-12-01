@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, Enum as SQLEnum, DateTime
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, ENUM as PG_ENUM
 from geoalchemy2 import Geometry
 from enum import Enum
 from .base import Base, TimestampMixin
@@ -35,12 +35,22 @@ class Location(Base, TimestampMixin):
 
     # External reference
     external_id = Column(String, index=True, nullable=True)  # ID from source database
-    source = Column(String, nullable=False, index=True)  # Use String instead of Enum to avoid PostgreSQL enum issues
+    source = Column(
+        PG_ENUM('park4night', 'campercontact', 'uitinvlaanderen', 'openstreetmap',
+                'google_places', 'manual', 'other',
+                name='location_source', schema='tripflow', create_type=False),
+        nullable=False, index=True
+    )
 
     # Basic info
     name = Column(String, nullable=False, index=True)
     description = Column(Text)
-    location_type = Column(String, nullable=False, index=True)  # Use String instead of Enum
+    location_type = Column(
+        PG_ENUM('CAMPSITE', 'PARKING', 'REST_AREA', 'SERVICE_AREA', 'POI', 'EVENT',
+                'ATTRACTION', 'RESTAURANT', 'HOTEL', 'ACTIVITY',
+                name='location_type', schema='tripflow', create_type=False),
+        nullable=False, index=True
+    )
 
     # Geographic data
     latitude = Column(Float, nullable=False)
@@ -67,7 +77,11 @@ class Location(Base, TimestampMixin):
     popularity_score = Column(Float)
 
     # Practical information (matches DB schema)
-    price_type = Column(String)  # 'free', 'paid', 'donation', etc.
+    price_type = Column(
+        PG_ENUM('free', 'paid', 'donation', 'unknown',
+                name='price_type', schema='tripflow', create_type=False),
+        nullable=True
+    )
     price_min = Column(Float)
     price_max = Column(Float)
     price_currency = Column(String, default="EUR")

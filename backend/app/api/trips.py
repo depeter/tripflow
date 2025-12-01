@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.db.database import get_db
+from app.db.database import get_db_sync
 from app.services.trip_service import TripPlanningService
 from app.api.schemas import (
     TripCreate,
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 
 
 @router.post("/", response_model=TripResponse)
-def create_trip(trip_data: TripCreate, user_id: int = 1, db: Session = Depends(get_db)):
+def create_trip(trip_data: TripCreate, user_id: int = 1, db: Session = Depends(get_db_sync)):
     """
     Create a new trip.
 
@@ -42,7 +42,7 @@ def create_trip(trip_data: TripCreate, user_id: int = 1, db: Session = Depends(g
 
 
 @router.get("/{trip_id}", response_model=TripResponse)
-def get_trip(trip_id: int, db: Session = Depends(get_db)):
+def get_trip(trip_id: int, db: Session = Depends(get_db_sync)):
     """Get trip by ID"""
     from app.models import Trip
 
@@ -54,7 +54,7 @@ def get_trip(trip_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=List[TripResponse])
-def list_trips(user_id: int = 1, db: Session = Depends(get_db)):
+def list_trips(user_id: int = 1, db: Session = Depends(get_db_sync)):
     """
     List all trips for a user.
 
@@ -67,7 +67,7 @@ def list_trips(user_id: int = 1, db: Session = Depends(get_db)):
 
 
 @router.post("/{trip_id}/waypoints", response_model=TripResponse)
-def add_waypoint(trip_id: int, waypoint: WaypointAdd, db: Session = Depends(get_db)):
+def add_waypoint(trip_id: int, waypoint: WaypointAdd, db: Session = Depends(get_db_sync)):
     """Add a waypoint to a trip"""
     service = TripPlanningService(db)
 
@@ -84,7 +84,7 @@ def add_waypoint(trip_id: int, waypoint: WaypointAdd, db: Session = Depends(get_
 
 
 @router.delete("/{trip_id}/waypoints/{location_id}", response_model=TripResponse)
-def remove_waypoint(trip_id: int, location_id: int, db: Session = Depends(get_db)):
+def remove_waypoint(trip_id: int, location_id: int, db: Session = Depends(get_db_sync)):
     """Remove a waypoint from a trip"""
     service = TripPlanningService(db)
 
@@ -100,7 +100,7 @@ def remove_waypoint(trip_id: int, location_id: int, db: Session = Depends(get_db
 def suggest_waypoints(
     trip_id: int,
     params: WaypointSuggestionParams,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_sync)
 ):
     """Get suggested waypoints for a trip"""
     service = TripPlanningService(db)
@@ -125,7 +125,7 @@ def suggest_waypoints(
 
 
 @router.get("/{trip_id}/stats", response_model=TripStats)
-def get_trip_stats(trip_id: int, db: Session = Depends(get_db)):
+def get_trip_stats(trip_id: int, db: Session = Depends(get_db_sync)):
     """Get trip statistics"""
     service = TripPlanningService(db)
 
@@ -138,7 +138,7 @@ def get_trip_stats(trip_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{trip_id}/finalize", response_model=TripResponse)
-def finalize_trip(trip_id: int, data: TripFinalize, db: Session = Depends(get_db)):
+def finalize_trip(trip_id: int, data: TripFinalize, db: Session = Depends(get_db_sync)):
     """Finalize trip and set to active"""
     service = TripPlanningService(db)
 
@@ -148,3 +148,20 @@ def finalize_trip(trip_id: int, data: TripFinalize, db: Session = Depends(get_db
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{trip_id}")
+def delete_trip(trip_id: int, user_id: int = 1, db: Session = Depends(get_db_sync)):
+    """
+    Delete a trip.
+
+    Note: user_id is hardcoded for now. Will be extracted from auth token later.
+    """
+    service = TripPlanningService(db)
+
+    try:
+        service.delete_trip(trip_id=trip_id, user_id=user_id)
+        return {"message": "Trip deleted successfully", "trip_id": trip_id}
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

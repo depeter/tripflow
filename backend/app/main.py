@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.core.config import settings
-from app.api import locations, trips, recommendations, admin, auth, billing, discover, favorites
+from app.api import locations, trips, recommendations, admin, auth, billing, discover, favorites, preferences
 from app.db.database import init_db
 from app.db.qdrant_client import qdrant_service
 
@@ -40,6 +40,7 @@ app.include_router(locations.router, prefix=settings.API_V1_STR)
 app.include_router(trips.router, prefix=settings.API_V1_STR)
 app.include_router(recommendations.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(preferences.router, prefix=settings.API_V1_STR)
 
 
 @app.on_event("startup")

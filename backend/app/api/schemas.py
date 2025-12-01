@@ -77,7 +77,7 @@ class TripResponse(BaseModel):
     end_longitude: Optional[float]
     max_distance_km: Optional[int]
     duration_days: Optional[int]
-    waypoints: List[Dict[str, Any]] = []
+    waypoints: Optional[List[Dict[str, Any]]] = None
     start_date: Optional[date]
     end_date: Optional[date]
     created_at: datetime

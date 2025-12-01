@@ -45,6 +45,10 @@ SSH_ASKPASS=/tmp/scraparr_pass.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force \
          $WORK_DIR/frontend/package-lock.json \
          $WORK_DIR/frontend/Dockerfile \
          $WORK_DIR/frontend/nginx.conf \
+         $WORK_DIR/frontend/next.config.mjs \
+         $WORK_DIR/frontend/tsconfig.json \
+         $WORK_DIR/frontend/tailwind.config.ts \
+         $WORK_DIR/frontend/postcss.config.mjs \
          $SERVER:/home/peter/tripflow-build/frontend/
 
 # Transfer docker-compose

@@ -9,6 +9,19 @@ from app.services.location_service import LocationService
 
 logger = logging.getLogger(__name__)
 
+# Singleton embedding model - loaded once at startup, reused for all requests
+_embedding_model = None
+
+
+def get_embedding_model() -> SentenceTransformer:
+    """Get or create the singleton embedding model."""
+    global _embedding_model
+    if _embedding_model is None:
+        logger.info("Loading SentenceTransformer model (one-time initialization)...")
+        _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        logger.info("SentenceTransformer model loaded successfully")
+    return _embedding_model
+
 
 class RecommendationService:
     """
@@ -23,8 +36,8 @@ class RecommendationService:
     def __init__(self, db: Session):
         self.db = db
         self.location_service = LocationService(db)
-        # Use a lightweight model for embeddings
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # 384 dimensions
+        # Use singleton model - loaded once, reused for all requests
+        self.embedding_model = get_embedding_model()
 
     def create_location_embedding(self, location: Location) -> List[float]:
         """
