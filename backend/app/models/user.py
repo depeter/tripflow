@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, BigInteger, ForeignKey
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .base import Base
@@ -22,6 +22,9 @@ class User(Base):
     # Profile
     full_name = Column(String(255), nullable=True)
     avatar_url = Column(String(500), nullable=True)
+
+    # User preferences (interests, travel style, vehicle, etc.)
+    profile_preferences = Column(JSONB, nullable=True, default={})
 
     # OAuth identifiers
     google_id = Column(String(255), unique=True, nullable=True)

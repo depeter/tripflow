@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, and_, or_, select
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime
 from geoalchemy2.types import Geography
 
 from app.db.database import get_db
-from app.models.event import Event, EventCategory
+from app.models.event import Event
 from app.models.location import Location
 from app.api.schemas import (
     DiscoverySearchParams,
@@ -18,18 +18,210 @@ from app.api.schemas import (
 router = APIRouter(prefix="/discover", tags=["discover"])
 
 
+# ============ Event Quality Scoring (from plan_service.py) ============
+
+# Boring event types to exclude - these are local activities not interesting for travelers
+BORING_EVENT_TYPES = {
+    'Cursus met open sessies',  # Courses with open sessions
+    'Lessenreeks',              # Lesson series
+    'Lezing of congres',        # Lectures/conferences
+    'Spel of quiz',             # Games/quizzes (usually local pub quizzes)
+    'Voorlezing',               # Readings (library activities)
+    'Boekvoorstelling',         # Book presentations
+    'Workshop',                 # Generic workshops
+}
+
+# Boring categories to exclude or deprioritize
+BORING_CATEGORIES = {
+    'OTHER',                    # Generic "other" category
+    'Cursus met open sessies',
+    'Lessenreeks',
+    'Lezing of congres',
+}
+
+# Interesting categories for travelers - these get priority
+INTERESTING_CATEGORIES = {
+    'CONCERT', 'Concert',
+    'Rock', 'Pop', 'Hip-Hop/Rap', 'Alternative', 'Jazz', 'Electronic', 'Metal',
+    'Fairs & Festivals', 'FESTIVAL',
+    'Theatre', 'THEATER', 'Theatervoorstelling',
+    'Comedy',
+    'Family',  # Family-friendly events
+    'EXHIBITION',  # Art exhibitions
+    'SPORTS', 'Sportactiviteit',
+}
+
+# Interesting event types
+INTERESTING_EVENT_TYPES = {
+    'Concert',
+    'Festival', 'Festiviteit',
+    'Theatervoorstelling',
+    'Eet- of drankfestijn',      # Food & drink festival
+    'Begeleide uitstap of rondleiding',  # Guided tours
+    'Beurs',                     # Trade fairs/markets
+    'Film',
+    'Tentoonstelling',           # Exhibition
+    'Sportactiviteit',
+}
+
+# Keywords in event names that indicate boring events
+BORING_NAME_KEYWORDS = [
+    'volzet',      # Sold out
+    'uitverkocht', # Sold out
+    'voorlezen',   # Reading aloud (library)
+    'boekstart',   # Book start (children's library)
+    'babysit',
+    'peuter',      # Toddler
+    'kleuter',     # Preschool
+]
+
+
+def _is_boring_event(event: Event) -> bool:
+    """Check if an event is boring/not interesting for travelers"""
+    # Check event type
+    if event.event_type and event.event_type in BORING_EVENT_TYPES:
+        return True
+
+    # Check category
+    if event.category and event.category in BORING_CATEGORIES:
+        # Only mark as boring if it's not also an interesting type
+        if event.event_type not in INTERESTING_EVENT_TYPES:
+            return True
+
+    # Check for boring keywords in name
+    if event.name:
+        name_lower = event.name.lower()
+        for keyword in BORING_NAME_KEYWORDS:
+            if keyword in name_lower:
+                return True
+
+    return False
+
+
+def _is_interesting_event(event: Event) -> bool:
+    """Check if an event is particularly interesting for travelers"""
+    # Interesting category
+    if event.category and event.category in INTERESTING_CATEGORIES:
+        return True
+
+    # Interesting event type
+    if event.event_type and event.event_type in INTERESTING_EVENT_TYPES:
+        return True
+
+    return False
+
+
+def _score_event(event: Event, distance_km: float) -> float:
+    """
+    Score an event based on quality factors.
+    Returns a score between 0 and 1, higher is better.
+    """
+    score = 0.0
+
+    # Base score: interesting events get a significant boost (40%)
+    if _is_interesting_event(event):
+        score += 0.4
+
+    # Distance score (10% weight) - closer is better, 0-300km range
+    distance_score = max(0, 1 - (distance_km / 300))
+    score += distance_score * 0.1
+
+    # Free events get a small boost (5%)
+    if event.free:
+        score += 0.05
+
+    # Events with prices listed (not unknown) are more reliable (5%)
+    if event.price is not None or event.free:
+        score += 0.05
+
+    # Category-based scoring (up to 20%)
+    if event.category:
+        if event.category in {'CONCERT', 'Concert', 'FESTIVAL'}:
+            score += 0.2
+        elif event.category in {'THEATER', 'Theatre', 'Comedy'}:
+            score += 0.15
+        elif event.category in {'EXHIBITION', 'CULTURAL'}:
+            score += 0.1
+        elif event.category in {'FOOD', 'MARKET'}:
+            score += 0.1
+        elif event.category in {'SPORTS', 'OUTDOOR'}:
+            score += 0.1
+
+    # Event type scoring (up to 15%)
+    if event.event_type:
+        if event.event_type in {'Concert', 'Festival', 'Festiviteit'}:
+            score += 0.15
+        elif event.event_type in {'Theatervoorstelling', 'Film'}:
+            score += 0.1
+        elif event.event_type in {'Eet- of drankfestijn', 'Tentoonstelling'}:
+            score += 0.1
+
+    # Normalize to 0-1 range
+    return min(1.0, score)
+
+
+def score_and_filter_events(event_results: List[Tuple[Event, float]]) -> List[Tuple[Event, float, float]]:
+    """
+    Score and filter events, returning (event, distance, score) tuples.
+    Filters out boring events and sorts by score descending.
+    """
+    scored_events = []
+
+    for event, distance in event_results:
+        # Skip boring events
+        if _is_boring_event(event):
+            continue
+
+        score = _score_event(event, distance)
+
+        # Only include events with minimal relevance (or interesting events)
+        if score >= 0.1 or _is_interesting_event(event):
+            scored_events.append((event, distance, score))
+
+    # Sort by score descending (best first)
+    scored_events.sort(key=lambda x: x[2], reverse=True)
+
+    return scored_events
+
+
 @router.post("", response_model=DiscoveryResponse)
 async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depends(get_db)):
     """
-    Discover events and/or locations near a point using PostGIS geospatial queries.
+    Discover events and/or locations using PostGIS geospatial queries.
 
-    Returns events and locations within the specified radius, sorted by distance.
+    Two modes:
+    1. Point search (default): Returns items within radius_km of the search point
+    2. Route search (when destination_latitude/longitude provided): Returns items along
+       the corridor between start and destination, up to max_distance_km
+
     Supports filtering by categories, date ranges, price, and text search.
     """
-    distance_meters = params.radius_km * 1000
     events = []
     locations = []
     total_count = 0
+
+    # Determine search mode: corridor (route) vs radius (point)
+    is_corridor_search = (
+        params.destination_latitude is not None and
+        params.destination_longitude is not None
+    )
+
+    # Create geometry for the search area
+    start_point = func.ST_SetSRID(
+        func.ST_MakePoint(params.longitude, params.latitude), 4326
+    )
+
+    if is_corridor_search:
+        # Route-based search: create a line from start to destination
+        end_point = func.ST_SetSRID(
+            func.ST_MakePoint(params.destination_longitude, params.destination_latitude), 4326
+        )
+        route_line = func.ST_MakeLine(start_point, end_point)
+        corridor_meters = params.corridor_width_km * 1000
+        max_distance_meters = (params.max_distance_km or 300) * 1000
+    else:
+        # Point-based search
+        distance_meters = params.radius_km * 1000
 
     # Determine what to fetch based on item_types
     fetch_events = not params.item_types or "events" in params.item_types
@@ -37,27 +229,52 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
 
     # Fetch Events
     if fetch_events:
-        # ST_Distance with geography returns meters, divide by 1000 for km
-        distance_expr = func.ST_Distance(
+        # Distance from start point (always calculated for sorting and display)
+        distance_from_start_expr = func.ST_Distance(
             func.cast(Event.geom, Geography),
-            func.cast(func.ST_SetSRID(func.ST_MakePoint(params.longitude, params.latitude), 4326), Geography)
+            func.cast(start_point, Geography)
         ) / 1000.0
 
-        event_query = select(
-            Event,
-            distance_expr.label('distance_km')
-        ).filter(
-            and_(
-                Event.active == True,
-                Event.cancelled == False,
-                # Use ST_DWithin with geography for proper meter-based filtering
-                func.ST_DWithin(
-                    func.cast(Event.geom, Geography),
-                    func.cast(func.ST_SetSRID(func.ST_MakePoint(params.longitude, params.latitude), 4326), Geography),
-                    distance_meters
+        if is_corridor_search:
+            # Corridor search: find events within corridor_width of the route line
+            # AND within max_distance from start
+            event_query = select(
+                Event,
+                distance_from_start_expr.label('distance_km')
+            ).filter(
+                and_(
+                    Event.active == True,
+                    Event.cancelled == False,
+                    # Within corridor of the route
+                    func.ST_DWithin(
+                        func.cast(Event.geom, Geography),
+                        func.cast(route_line, Geography),
+                        corridor_meters
+                    ),
+                    # Within max driving distance from start
+                    func.ST_DWithin(
+                        func.cast(Event.geom, Geography),
+                        func.cast(start_point, Geography),
+                        max_distance_meters
+                    )
                 )
             )
-        )
+        else:
+            # Point search: find events within radius of search point
+            event_query = select(
+                Event,
+                distance_from_start_expr.label('distance_km')
+            ).filter(
+                and_(
+                    Event.active == True,
+                    Event.cancelled == False,
+                    func.ST_DWithin(
+                        func.cast(Event.geom, Geography),
+                        func.cast(start_point, Geography),
+                        distance_meters
+                    )
+                )
+            )
 
         # Use new structured filters if provided, otherwise fall back to legacy
         if params.event_filters:
@@ -171,14 +388,19 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
             if time_conditions:
                 event_query = event_query.filter(or_(*time_conditions))
 
-        # Sort and limit
-        event_query = event_query.order_by(distance_expr).limit(params.limit)
+        # Sort by distance initially (we'll re-sort by score after filtering)
+        # Fetch more events than requested since we'll filter out boring ones
+        event_query = event_query.order_by(distance_from_start_expr).limit(params.limit * 3)
 
         # Execute
         event_result = await db.execute(event_query)
         event_results = event_result.all()
 
-        for event, distance in event_results:
+        # Score, filter, and sort events by quality score
+        scored_events = score_and_filter_events(event_results)
+
+        # Take only the requested limit after scoring
+        for event, distance, score in scored_events[:params.limit]:
             event_dict = {
                 'id': event.id,
                 'name': event.name,
@@ -204,31 +426,56 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
                 'themes': event.themes or [],
                 'source': event.source,
                 'distance_km': round(distance, 2) if distance else None,
+                'score': round(score, 2),
             }
             events.append(EventResponse(**event_dict))
 
     # Fetch Locations
     if fetch_locations:
-        # ST_Distance with geography returns meters, divide by 1000 for km
-        distance_expr_loc = func.ST_Distance(
+        # Distance from start point (always calculated for sorting and display)
+        distance_from_start_loc = func.ST_Distance(
             func.cast(Location.geom, Geography),
-            func.cast(func.ST_SetSRID(func.ST_MakePoint(params.longitude, params.latitude), 4326), Geography)
+            func.cast(start_point, Geography)
         ) / 1000.0
 
-        location_query = select(
-            Location,
-            distance_expr_loc.label('distance_km')
-        ).filter(
-            and_(
-                Location.active == True,
-                # Use ST_DWithin with geography for proper meter-based filtering
-                func.ST_DWithin(
-                    func.cast(Location.geom, Geography),
-                    func.cast(func.ST_SetSRID(func.ST_MakePoint(params.longitude, params.latitude), 4326), Geography),
-                    distance_meters
+        if is_corridor_search:
+            # Corridor search: find locations within corridor_width of the route line
+            # AND within max_distance from start
+            location_query = select(
+                Location,
+                distance_from_start_loc.label('distance_km')
+            ).filter(
+                and_(
+                    Location.active == True,
+                    # Within corridor of the route
+                    func.ST_DWithin(
+                        func.cast(Location.geom, Geography),
+                        func.cast(route_line, Geography),
+                        corridor_meters
+                    ),
+                    # Within max driving distance from start
+                    func.ST_DWithin(
+                        func.cast(Location.geom, Geography),
+                        func.cast(start_point, Geography),
+                        max_distance_meters
+                    )
                 )
             )
-        )
+        else:
+            # Point search: find locations within radius of search point
+            location_query = select(
+                Location,
+                distance_from_start_loc.label('distance_km')
+            ).filter(
+                and_(
+                    Location.active == True,
+                    func.ST_DWithin(
+                        func.cast(Location.geom, Geography),
+                        func.cast(start_point, Geography),
+                        distance_meters
+                    )
+                )
+            )
 
         # Use new structured location filters if provided
         if params.location_filters:
@@ -319,7 +566,7 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
             )
 
         # Sort and limit
-        location_query = location_query.order_by(distance_expr_loc).limit(params.limit)
+        location_query = location_query.order_by(distance_from_start_loc).limit(params.limit)
 
         # Execute
         location_result = await db.execute(location_query)
@@ -365,9 +612,15 @@ async def discover_events(params: DiscoverySearchParams, db: AsyncSession = Depe
 
 
 @router.get("/categories", response_model=List[str])
-def get_categories():
-    """Get list of available event categories"""
-    return [category.value for category in EventCategory]
+async def get_categories(db: AsyncSession = Depends(get_db)):
+    """Get list of available event categories from database"""
+    # Query distinct categories from the database
+    from sqlalchemy import select, func
+    result = await db.execute(
+        select(Event.category).distinct().where(Event.category.isnot(None)).order_by(Event.category)
+    )
+    categories = [row[0] for row in result.all()]
+    return categories
 
 
 @router.get("/stats")

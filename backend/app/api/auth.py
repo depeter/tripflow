@@ -51,9 +51,19 @@ class UserResponse(BaseModel):
     subscription_tier: str = "free"
     avatar_url: Optional[str] = None
     created_at: datetime
+    profile_preferences: Optional[dict] = None
 
     class Config:
         from_attributes = True
+
+
+class ProfilePreferencesUpdate(BaseModel):
+    """Schema for updating user profile preferences"""
+    language: Optional[str] = None
+    interests: Optional[list] = None
+    travelStyle: Optional[dict] = None
+    vehicle: Optional[dict] = None
+    homeBase: Optional[dict] = None
 
 
 # ===== Endpoints =====
@@ -178,6 +188,52 @@ async def logout(
     """
     # TODO: Invalidate refresh token in database
     return {"message": "Logged out successfully"}
+
+
+@router.get("/preferences")
+async def get_profile_preferences(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current user's profile preferences (interests, travel style, vehicle, etc.)
+    """
+    # Refresh user to ensure we have latest attributes
+    await db.refresh(current_user)
+    return getattr(current_user, 'profile_preferences', None) or {}
+
+
+@router.put("/preferences")
+async def update_profile_preferences(
+    preferences: ProfilePreferencesUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update user's profile preferences
+
+    Merges provided fields with existing preferences.
+    Only provided fields will be updated.
+    """
+    # Refresh user to ensure we have latest attributes
+    await db.refresh(current_user)
+
+    # Get current preferences or empty dict
+    current_prefs = getattr(current_user, 'profile_preferences', None) or {}
+
+    # Merge new preferences (only update provided fields)
+    update_data = preferences.model_dump(exclude_none=True)
+    merged_prefs = {**current_prefs, **update_data}
+
+    # Update user
+    await db.execute(
+        update(User)
+        .where(User.id == current_user.id)
+        .values(profile_preferences=merged_prefs)
+    )
+    await db.commit()
+
+    return merged_prefs
 
 
 @router.post("/refresh", response_model=Token)

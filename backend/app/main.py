@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.core.config import settings
-from app.api import locations, trips, recommendations, admin, auth, billing, discover, favorites, preferences
+from app.api import locations, trips, recommendations, admin, auth, billing, discover, favorites, preferences, languages, plans
 from app.db.database import init_db
 from app.db.qdrant_client import qdrant_service
 
@@ -37,10 +37,12 @@ app.include_router(billing.router, prefix=settings.API_V1_STR)
 app.include_router(discover.router, prefix=settings.API_V1_STR)
 app.include_router(favorites.router, prefix=settings.API_V1_STR)
 app.include_router(locations.router, prefix=settings.API_V1_STR)
+app.include_router(plans.router, prefix=settings.API_V1_STR)
 app.include_router(trips.router, prefix=settings.API_V1_STR)
 app.include_router(recommendations.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(preferences.router, prefix=settings.API_V1_STR)
+app.include_router(languages.router, prefix=settings.API_V1_STR)
 
 
 @app.on_event("startup")
@@ -49,11 +51,14 @@ async def startup_event():
     logger.info("Starting TripFlow API...")
 
     # Initialize database
-    try:
-        init_db()
-        logger.info("Database initialized")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
+    # Note: Disabled in production as schema already exists and init_db()
+    # creates unwanted enum types. Run migrations manually if needed.
+    # try:
+    #     init_db()
+    #     logger.info("Database initialized")
+    # except Exception as e:
+    #     logger.error(f"Database initialization failed: {e}")
+    logger.info("Database initialization skipped (production mode)")
 
     # Initialize Qdrant collection
     try:

@@ -40,3 +40,6 @@ frontend/frontend.log
 # Temp
 /tmp/
 *.tmp
+
+# Old/backup directories
+frontend-old/

@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     SYNC_ENABLED: bool = True
     SYNC_SCHEDULE_HOURS: int = 24  # Sync every 24 hours
 
+    # Event cleanup configuration
+    EVENT_CLEANUP_ENABLED: bool = True
+    EVENT_CLEANUP_RETENTION_DAYS: int = 0  # Delete immediately when end_date passes
+    EVENT_CLEANUP_SCHEDULE_HOURS: int = 24  # Run cleanup daily
+
     # Authentication
     SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION_use-at-least-32-random-characters"
     ALGORITHM: str = "HS256"

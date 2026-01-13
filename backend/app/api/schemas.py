@@ -164,6 +164,12 @@ class GeocodeResponse(BaseModel):
     display_name: str
 
 
+class ReverseGeocodeResponse(BaseModel):
+    address: str
+    city: str
+    country: str
+
+
 # Sync schemas
 class SyncRequest(BaseModel):
     source: Optional[str] = None  # 'park4night', 'campercontact', 'local_sites', or None for all
@@ -219,6 +225,7 @@ class EventResponse(BaseModel):
     themes: List[str] = []
     source: str
     distance_km: Optional[float] = None
+    score: Optional[float] = Field(None, description="Quality/relevance score (0-1, higher is better)")
 
     class Config:
         from_attributes = True
@@ -252,10 +259,16 @@ class LocationFiltersSchema(BaseModel):
 class DiscoverySearchParams(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    radius_km: int = Field(25, ge=1, le=200, description="Search radius in kilometers")
+    radius_km: int = Field(25, ge=1, le=200, description="Search radius in kilometers (used for point search)")
     item_types: Optional[List[str]] = Field(["events", "locations"], description="Types to show: events, locations, or both")
     search_text: Optional[str] = Field(None, description="Search text for name/description/themes")
     limit: int = Field(200, ge=1, le=500, description="Max results per type")
+
+    # Route-based search (corridor mode) - when destination is provided, searches along route instead of radius
+    destination_latitude: Optional[float] = Field(None, ge=-90, le=90, description="Destination latitude for route-based search")
+    destination_longitude: Optional[float] = Field(None, ge=-180, le=180, description="Destination longitude for route-based search")
+    corridor_width_km: int = Field(30, ge=5, le=100, description="Width of search corridor around route in km")
+    max_distance_km: Optional[int] = Field(None, ge=1, le=600, description="Max distance along route to search (today's driving range)")
 
     # Structured filters
     event_filters: Optional[EventFiltersSchema] = Field(None, description="Event-specific filters")
@@ -302,3 +315,138 @@ class DiscoveryResponse(BaseModel):
     total_count: int
     search_center: Dict[str, float]  # {"latitude": x, "longitude": y}
     radius_km: int
+
+
+# ============ Personalized Plans Schemas ============
+
+class UserPreferencesInput(BaseModel):
+    """User preferences for personalized plan generation"""
+    # Interests (from profile)
+    interests: List[str] = Field(
+        default=[],
+        description="User interests: nature, history, food, photography, music, cycling, wine, architecture"
+    )
+    # Environment preferences
+    preferred_environment: List[str] = Field(
+        default=[],
+        description="Preferred environments: nature, cities, villages, coast"
+    )
+    # Accommodation preferences
+    accommodation_types: List[str] = Field(
+        default=[],
+        description="Preferred accommodation: camping, wild, stellplatz, hotel"
+    )
+    # Travel pace
+    travel_pace: str = Field(
+        default="moderate",
+        description="Travel pace: slow (50-100km/day), moderate (100-200km/day), fast (200+km/day)"
+    )
+    # Budget preference
+    budget: str = Field(
+        default="mid-range",
+        description="Budget level: budget, mid-range, comfort"
+    )
+
+
+class PlanSuggestRequest(BaseModel):
+    """Request for personalized plan suggestions"""
+    # Location
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
+    # Optional destination for transit mode
+    destination_latitude: Optional[float] = Field(None, ge=-90, le=90)
+    destination_longitude: Optional[float] = Field(None, ge=-180, le=180)
+    destination_name: Optional[str] = None
+
+    # Driving envelope (how far user wants to drive today)
+    driving_envelope_km: int = Field(default=100, ge=0, le=600)
+
+    # User preferences (if not provided, returns generic plans)
+    preferences: Optional[UserPreferencesInput] = None
+
+    # Date range for events
+    date_start: Optional[datetime] = None
+    date_end: Optional[datetime] = None
+
+    # Limits
+    max_plans: int = Field(default=8, ge=1, le=20)
+    max_items_per_plan: int = Field(default=5, ge=1, le=10)
+
+
+class PlanItemResponse(BaseModel):
+    """A single item (event or location) in a plan"""
+    id: str
+    item_type: str  # 'event' or 'location'
+    name: str
+    description: Optional[str] = None
+    latitude: float
+    longitude: float
+    distance_km: float
+
+    # Event-specific
+    start_datetime: Optional[datetime] = None
+    end_datetime: Optional[datetime] = None
+    price: Optional[float] = None
+    free: Optional[bool] = None
+    category: Optional[str] = None
+    event_type: Optional[str] = None
+    themes: List[str] = []
+
+    # Location-specific
+    location_type: Optional[str] = None
+    rating: Optional[float] = None
+    price_type: Optional[str] = None
+    tags: List[str] = []
+    amenities: Optional[Dict[str, Any]] = None
+
+    # Common
+    city: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    image: Optional[str] = None
+
+    # Scoring
+    preference_score: float = Field(default=0.0, description="How well this matches user preferences (0-1)")
+    match_reasons: List[str] = Field(default=[], description="Why this item matches user preferences")
+
+
+class SuggestedPlanResponse(BaseModel):
+    """A suggested day plan"""
+    id: str
+    plan_type: str  # 'themed', 'distance', 'transit'
+    title: str
+    description: str
+    icon: str  # emoji
+
+    # Distance info
+    total_km: int
+    estimated_hours: float
+
+    # Items in the plan
+    events: List[PlanItemResponse] = []
+    stops: List[PlanItemResponse] = []  # POIs, rest stops along the way
+    overnight: List[PlanItemResponse] = []  # Overnight locations
+
+    # Scoring
+    preference_score: float = Field(default=0.0, description="Overall plan match score (0-1)")
+    match_reasons: List[str] = Field(default=[], description="Why this plan was suggested")
+
+    # For transit mode
+    is_transit_plan: bool = False
+    progress_toward_destination: Optional[float] = None  # 0-1, how much closer to destination
+
+
+class PlanSuggestResponse(BaseModel):
+    """Response with personalized plan suggestions"""
+    plans: List[SuggestedPlanResponse]
+    total_plans: int
+
+    # User context
+    current_location: Dict[str, float]
+    destination: Optional[Dict[str, Any]] = None
+    driving_envelope_km: int
+
+    # Whether preferences were applied
+    personalized: bool
+    preferences_applied: Optional[UserPreferencesInput] = None

@@ -117,6 +117,7 @@ class BaseImporter(ABC):
             "skipped": 0,
             "errors": 0,
             "translations": 0,
+            "mapped_to_canonical": 0,
         }
 
         try:
@@ -133,11 +134,23 @@ class BaseImporter(ABC):
                     try:
                         # Transform row to Location format
                         location_data = self.transform_row(row)
+                        external_id = location_data.get("external_id")
+                        source_enum = LocationSource[self.source_name.upper()]
 
-                        # Check if location already exists
+                        # Check if this external_id is mapped to an existing canonical location
+                        existing_mapping = self._get_source_mapping(external_id, source_enum.value)
+
+                        if existing_mapping:
+                            # Update the canonical location with new data from this source
+                            canonical_id = existing_mapping['canonical_location_id']
+                            self._update_canonical_from_source(canonical_id, location_data)
+                            stats["mapped_to_canonical"] += 1
+                            continue
+
+                        # Check if location already exists as its own record
                         existing = self.target_session.query(Location).filter(
-                            Location.external_id == location_data.get("external_id"),
-                            Location.source == LocationSource[self.source_name.upper()]
+                            Location.external_id == external_id,
+                            Location.source == source_enum
                         ).first()
 
                         if existing:
@@ -149,7 +162,7 @@ class BaseImporter(ABC):
                             stats["updated"] += 1
                         else:
                             # Insert new location
-                            location_data["source"] = LocationSource[self.source_name.upper()]
+                            location_data["source"] = source_enum
                             location_data["last_synced_at"] = datetime.utcnow()
                             location_obj = Location(**location_data)
                             self.target_session.add(location_obj)
@@ -201,3 +214,87 @@ class BaseImporter(ABC):
         This method can be called by Celery tasks for scheduled syncing.
         """
         return self.import_data(batch_size=batch_size, limit=limit)
+
+    def _get_source_mapping(self, external_id: str, source: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if an external_id is already mapped to a canonical location.
+
+        This happens when a location was previously merged into another.
+
+        Args:
+            external_id: The external ID from the source
+            source: The source name (e.g., 'park4night')
+
+        Returns:
+            Dict with canonical_location_id if mapping exists, None otherwise
+        """
+        result = self.target_session.execute(text("""
+            SELECT canonical_location_id
+            FROM tripflow.location_source_mappings
+            WHERE external_id = :ext_id AND source = :src
+        """), {'ext_id': external_id, 'src': source}).fetchone()
+
+        if result:
+            return {'canonical_location_id': result[0]}
+        return None
+
+    def _update_canonical_from_source(self, canonical_id: int, location_data: Dict[str, Any]):
+        """
+        Update a canonical location with new data from a merged source.
+
+        This is called when we sync a source that was previously merged into
+        another location. We update fields that might have changed (ratings, etc.)
+        but don't overwrite core data like name/description.
+
+        Args:
+            canonical_id: ID of the canonical location
+            location_data: New data from the source
+        """
+        from app.models import Location
+
+        canonical = self.target_session.query(Location).filter(Location.id == canonical_id).first()
+        if not canonical:
+            logger.warning(f"Canonical location {canonical_id} not found")
+            return
+
+        # Update rating if the source has newer/better data
+        if location_data.get('rating') and location_data.get('rating_count'):
+            # Update if we have more reviews from this source
+            source_rating = location_data['rating']
+            source_count = location_data['rating_count']
+
+            if canonical.rating and canonical.rating_count:
+                # Weighted average (this is a simplification - ideally track per-source ratings)
+                total_count = canonical.rating_count + source_count
+                canonical.rating = round(
+                    (canonical.rating * canonical.rating_count + source_rating * source_count) / total_count,
+                    2
+                )
+                canonical.rating_count = total_count
+            else:
+                canonical.rating = source_rating
+                canonical.rating_count = source_count
+
+        # Update images if source has new ones
+        if location_data.get('images'):
+            def get_url(img):
+                return img.get('url') if isinstance(img, dict) else img
+
+            existing_urls = {get_url(img) for img in (canonical.images or [])}
+            new_images = [img for img in location_data['images'] if get_url(img) not in existing_urls]
+            if new_images and canonical.images:
+                canonical.images = (canonical.images + new_images)[:20]
+            elif new_images:
+                canonical.images = new_images[:20]
+
+        # Update the source mapping timestamp
+        self.target_session.execute(text("""
+            UPDATE tripflow.location_source_mappings
+            SET last_synced_at = NOW()
+            WHERE external_id = :ext_id AND source = :src
+        """), {
+            'ext_id': location_data.get('external_id'),
+            'src': self.source_name
+        })
+
+        logger.debug(f"Updated canonical location {canonical_id} from source {self.source_name}")

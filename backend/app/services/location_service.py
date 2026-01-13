@@ -15,9 +15,21 @@ class LocationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_location_by_id(self, location_id: int) -> Optional[Location]:
-        """Get location by ID"""
-        return self.db.query(Location).filter(Location.id == location_id).first()
+    def get_location_by_id(self, location_id: int, include_merged: bool = False) -> Optional[Location]:
+        """
+        Get location by ID.
+
+        Args:
+            location_id: The location ID
+            include_merged: If True, also return merged (non-canonical) locations
+
+        Returns:
+            Location or None
+        """
+        q = self.db.query(Location).filter(Location.id == location_id)
+        if not include_merged:
+            q = q.filter(Location.is_canonical == True)
+        return q.first()
 
     def search_locations(
         self,
@@ -44,7 +56,11 @@ class LocationService:
         Returns:
             List of matching locations
         """
-        q = self.db.query(Location).filter(Location.active == True)
+        # Filter by active and canonical (exclude merged records)
+        q = self.db.query(Location).filter(
+            Location.active == True,
+            Location.is_canonical == True
+        )
 
         # Text search
         if query:
@@ -117,6 +133,7 @@ class LocationService:
         ).filter(
             and_(
                 Location.active == True,
+                Location.is_canonical == True,
                 func.ST_DWithin(
                     func.cast(Location.geom, "geography"),
                     func.cast(
@@ -189,6 +206,7 @@ class LocationService:
         ).filter(
             and_(
                 Location.active == True,
+                Location.is_canonical == True,
                 func.ST_DWithin(
                     func.cast(Location.geom, "geography"),
                     func.cast(line, "geography"),
@@ -250,7 +268,7 @@ class LocationService:
             logger.error(f"Geocoding failed for address '{address}': {e}")
             return None
 
-    def reverse_geocode(self, latitude: float, longitude: float) -> Optional[str]:
+    def reverse_geocode(self, latitude: float, longitude: float) -> Optional[Dict[str, str]]:
         """
         Reverse geocode coordinates to address.
 
@@ -259,7 +277,7 @@ class LocationService:
             longitude: Longitude
 
         Returns:
-            Address string or None
+            Dictionary with address, city, country or None
         """
         from geopy.geocoders import Nominatim
         from app.core.config import settings
@@ -267,9 +285,16 @@ class LocationService:
         geolocator = Nominatim(user_agent=settings.NOMINATIM_USER_AGENT)
 
         try:
-            location = geolocator.reverse((latitude, longitude))
+            location = geolocator.reverse((latitude, longitude), language='en')
             if location:
-                return location.address
+                raw = location.raw.get('address', {})
+                city = raw.get('city') or raw.get('town') or raw.get('village') or raw.get('municipality') or ''
+                country = raw.get('country', '')
+                return {
+                    "address": location.address,
+                    "city": city,
+                    "country": country,
+                }
             return None
 
         except Exception as e:

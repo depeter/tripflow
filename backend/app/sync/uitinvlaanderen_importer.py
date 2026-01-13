@@ -3,8 +3,54 @@ from .base_importer import BaseImporter
 from app.models import LocationType
 import logging
 import json
+import re
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+def generate_slug(name: str) -> str:
+    """Generate a URL-friendly slug from an event name."""
+    if not name:
+        return "event"
+    # Normalize unicode characters
+    slug = unicodedata.normalize('NFKD', name)
+    # Convert to ASCII, ignoring non-ASCII characters
+    slug = slug.encode('ascii', 'ignore').decode('ascii')
+    # Convert to lowercase
+    slug = slug.lower()
+    # Replace spaces and special characters with hyphens
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    # Remove leading/trailing hyphens
+    slug = slug.strip('-')
+    # Limit length
+    slug = slug[:50]
+    return slug or "event"
+
+
+def fix_uitinvlaanderen_url(url: str, name: str) -> str:
+    """
+    Fix uitinvlaanderen.be URLs by inserting a slug between /e/ and the UUID.
+
+    Bad URL:  https://www.uitinvlaanderen.be/agenda/e/a14e2c14-eff5-4378-8b4d-69effd90b591
+    Good URL: https://www.uitinvlaanderen.be/agenda/e/my-event-name/a14e2c14-eff5-4378-8b4d-69effd90b591
+    """
+    if not url:
+        return url
+
+    # Pattern to match uitinvlaanderen URLs with /e/ followed directly by a UUID
+    # UUID pattern: 8-4-4-4-12 hex characters
+    pattern = r'(https?://(?:www\.)?uitinvlaanderen\.be/agenda/e/)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(.*)$'
+
+    match = re.match(pattern, url, re.IGNORECASE)
+    if match:
+        base = match.group(1)
+        uuid = match.group(2)
+        rest = match.group(3)
+        slug = generate_slug(name)
+        return f"{base}{slug}/{uuid}{rest}"
+
+    return url
 
 
 class UiTinVlaanderenImporter(BaseImporter):
@@ -112,12 +158,12 @@ class UiTinVlaanderenImporter(BaseImporter):
             "currency": "EUR",
             "phone": None,
             "email": None,
-            "website": row.get("url"),
+            "website": fix_uitinvlaanderen_url(row.get("url"), row.get("name")),
             "images": images,
             "main_image_url": main_image,
             "tags": tags,
             "active": True,
-            "source_url": row.get("url"),
+            "source_url": fix_uitinvlaanderen_url(row.get("url"), row.get("name")),
             "raw_data": json.dumps({
                 "event_id": row.get("event_id"),
                 "event_type": event_type,

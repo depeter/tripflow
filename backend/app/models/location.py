@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Text, JSON, Enum as SQLEnum, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Float, Boolean, Text, JSON, Enum as SQLEnum, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, ENUM as PG_ENUM
 from geoalchemy2 import Geometry
 from enum import Enum
@@ -26,6 +26,9 @@ class LocationSource(str, Enum):
     GOOGLE_PLACES = "google_places"
     MANUAL = "manual"
     OTHER = "other"
+    VISITWALLONIA = "visitwallonia"
+    DAGJEWEG = "dagjeweg"
+    WIKIDATA = "wikidata"
 
 
 class Location(Base, TimestampMixin):
@@ -37,7 +40,7 @@ class Location(Base, TimestampMixin):
     external_id = Column(String, index=True, nullable=True)  # ID from source database
     source = Column(
         PG_ENUM('park4night', 'campercontact', 'uitinvlaanderen', 'openstreetmap',
-                'google_places', 'manual', 'other',
+                'google_places', 'manual', 'other', 'visitwallonia', 'dagjeweg', 'wikidata',
                 name='location_source', schema='tripflow', create_type=False),
         nullable=False, index=True
     )
@@ -115,6 +118,13 @@ class Location(Base, TimestampMixin):
     # Sync metadata
     raw_data = Column(JSONB)
     last_verified_at = Column(DateTime)
+    last_synced_at = Column(DateTime(timezone=True))
+
+    # Deduplication fields
+    is_canonical = Column(Boolean, default=True, index=True)
+    canonical_id = Column(BigInteger, ForeignKey('tripflow.locations.id'))
+    merged_at = Column(DateTime(timezone=True))
+    source_count = Column(Integer, default=1)
 
     def __repr__(self):
         return f"<Location(id={self.id}, name='{self.name}', type={self.location_type})>"

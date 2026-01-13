@@ -9,6 +9,50 @@ Add new scrapers here as they're added to the scraparr system.
 from enum import Enum
 from typing import Dict, Any, Optional, List
 import re
+import unicodedata
+
+
+def generate_slug(name: str) -> str:
+    """Generate a URL-friendly slug from a name."""
+    if not name:
+        return "event"
+    # Normalize unicode characters
+    slug = unicodedata.normalize('NFKD', name)
+    # Convert to ASCII, ignoring non-ASCII characters
+    slug = slug.encode('ascii', 'ignore').decode('ascii')
+    # Convert to lowercase
+    slug = slug.lower()
+    # Replace spaces and special characters with hyphens
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    # Remove leading/trailing hyphens
+    slug = slug.strip('-')
+    # Limit length
+    slug = slug[:50]
+    return slug or "event"
+
+
+def fix_uitinvlaanderen_url(url: str, name: str) -> str:
+    """
+    Fix uitinvlaanderen.be URLs by inserting a slug between /e/ and the UUID.
+
+    Bad URL:  https://www.uitinvlaanderen.be/agenda/e/a14e2c14-eff5-4378-8b4d-69effd90b591
+    Good URL: https://www.uitinvlaanderen.be/agenda/e/my-event-name/a14e2c14-eff5-4378-8b4d-69effd90b591
+    """
+    if not url:
+        return url
+
+    # Pattern to match uitinvlaanderen URLs with /e/ followed directly by a UUID
+    pattern = r'(https?://(?:www\.)?uitinvlaanderen\.be/agenda/e/)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(.*)$'
+
+    match = re.match(pattern, url, re.IGNORECASE)
+    if match:
+        base = match.group(1)
+        uuid = match.group(2)
+        rest = match.group(3)
+        slug = generate_slug(name)
+        return f"{base}{slug}/{uuid}{rest}"
+
+    return url
 
 class DataType(Enum):
     """Types of data that scrapers can provide"""
@@ -195,11 +239,12 @@ class UiTinVlaanderenMapping(ScraperMapping):
     def map_to_location(self, row: Dict[str, Any]) -> Dict[str, Any]:
         """Map UiT event venue to tripflow location"""
         location_name = row.get('location_name') or row.get('name')
+        fixed_url = fix_uitinvlaanderen_url(row.get('url'), location_name)
 
         return {
             "external_id": f"uit_location_{row['event_id']}",
             "source": "uitinvlaanderen",
-            "source_url": row.get('url'),
+            "source_url": fixed_url,
             "name": location_name[:500],
             "description": None,  # Event description goes in event record
             "location_type": "EVENT",
@@ -489,6 +534,212 @@ class CamperContactMapping(ScraperMapping):
         }
 
 
+class OpenStreetMapMapping(ScraperMapping):
+    """Mapping for OpenStreetMap POIs (nature, attractions, historic sites)"""
+
+    # Nature-related subcategories that should be tagged with 'nature' feature
+    NATURE_SUBCATEGORIES = {
+        'viewpoint', 'park', 'nature_reserve', 'garden',
+    }
+
+    # Attraction subcategories
+    ATTRACTION_SUBCATEGORIES = {
+        'attraction', 'artwork', 'museum', 'gallery', 'zoo',
+        'theme_park', 'aquarium', 'stadium',
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.scraper_id = 11
+        self.scraper_name = "OpenStreetMap POIs"
+        self.schema_name = "scraper_11"
+        self.data_type = DataType.LOCATION
+        self.source_name = "openstreetmap"
+
+    def get_query(self) -> str:
+        # Only get tourism and leisure POIs with names and coordinates
+        return f"""
+            SELECT * FROM {self.schema_name}.pois
+            WHERE category IN ('tourism', 'leisure')
+            AND subcategory IN ('viewpoint', 'park', 'nature_reserve', 'garden',
+                               'attraction', 'artwork', 'museum', 'gallery',
+                               'zoo', 'theme_park', 'aquarium')
+            AND name IS NOT NULL
+            AND LENGTH(name) > 2
+            AND latitude IS NOT NULL
+            AND longitude IS NOT NULL
+            ORDER BY id
+        """
+
+    def map_to_location(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Map OpenStreetMap POI to tripflow location"""
+        subcategory = row.get('subcategory', '').lower()
+
+        # Determine location type
+        if subcategory in self.NATURE_SUBCATEGORIES:
+            location_type = 'POI'
+        elif subcategory in self.ATTRACTION_SUBCATEGORIES:
+            location_type = 'ATTRACTION'
+        else:
+            location_type = 'POI'
+
+        # Build features dict
+        features = {}
+        if subcategory in self.NATURE_SUBCATEGORIES:
+            features['nature'] = True
+            features['outdoor'] = True
+        if subcategory == 'viewpoint':
+            features['scenic'] = True
+        if subcategory == 'park':
+            features['park'] = True
+            features['family_friendly'] = True
+        if subcategory == 'nature_reserve':
+            features['wildlife'] = True
+            features['hiking'] = True
+        if subcategory == 'garden':
+            features['botanical'] = True
+
+        # Build tags list
+        tags = [subcategory]
+        if row.get('category'):
+            tags.append(row['category'])
+        if subcategory in self.NATURE_SUBCATEGORIES:
+            tags.append('nature')
+
+        # Get best name
+        name = row.get('name_en') or row.get('name') or f"OSM {row['osm_id']}"
+
+        # Get description
+        description = row.get('description')
+        if not description and row.get('wikipedia'):
+            description = f"Wikipedia: {row['wikipedia']}"
+
+        return {
+            "external_id": f"osm_{row.get('osm_type', 'node')}_{row['osm_id']}",
+            "source": "openstreetmap",
+            "source_url": f"https://www.openstreetmap.org/{row.get('osm_type', 'node')}/{row['osm_id']}",
+            "name": name[:500],
+            "description": description,
+            "location_type": location_type,
+            "latitude": float(row['latitude']),
+            "longitude": float(row['longitude']),
+            "address": row.get('address'),
+            "city": row.get('city'),
+            "postal_code": row.get('postcode'),
+            "country": row.get('country'),
+            "country_code": row.get('country_code'),
+            "rating": None,
+            "price_type": 'free',  # Most OSM POIs are free public spaces
+            "price_min": None,
+            "price_max": None,
+            "amenities": [],
+            "features": features,
+            "tags": tags,
+            "images": [{"url": row['image'], "type": "photo"}] if row.get('image') else [],
+            "main_image_url": row.get('image'),
+            "is_active": True,
+            "raw_data": {
+                "osm_id": row.get('osm_id'),
+                "osm_type": row.get('osm_type'),
+                "category": row.get('category'),
+                "subcategory": subcategory,
+                "wikipedia": row.get('wikipedia'),
+                "wikidata": row.get('wikidata'),
+                "heritage": row.get('heritage'),
+            }
+        }
+
+
+class WikidataMapping(ScraperMapping):
+    """Mapping for Wikidata tourist attractions"""
+
+    # Nature-related POI types from Wikidata
+    NATURE_POI_TYPES = {
+        'national_park', 'botanical_garden', 'nature_reserve',
+        'world_heritage_site',  # Many are natural sites
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.scraper_id = 12
+        self.scraper_name = "Wikidata Tourist Attractions"
+        self.schema_name = "scraper_12"
+        self.data_type = DataType.LOCATION
+        self.source_name = "wikidata"
+
+    def get_query(self) -> str:
+        return f"""
+            SELECT * FROM {self.schema_name}.pois
+            WHERE latitude IS NOT NULL
+            AND longitude IS NOT NULL
+            AND name IS NOT NULL
+            ORDER BY id
+        """
+
+    def map_to_location(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """Map Wikidata POI to tripflow location"""
+        poi_type = row.get('poi_type', '').lower()
+
+        # Determine location type and features
+        features = {}
+        if poi_type in self.NATURE_POI_TYPES:
+            location_type = 'POI'
+            features['nature'] = True
+            features['outdoor'] = True
+        else:
+            location_type = 'ATTRACTION'
+
+        if poi_type == 'botanical_garden':
+            features['botanical'] = True
+            features['nature'] = True
+        if poi_type == 'national_park':
+            features['hiking'] = True
+            features['wildlife'] = True
+            features['nature'] = True
+
+        # Build tags
+        tags = [poi_type] if poi_type else []
+        if poi_type in self.NATURE_POI_TYPES:
+            tags.append('nature')
+
+        # Get best name and description
+        name = row.get('name_en') or row.get('name') or f"Wikidata {row['wikidata_id']}"
+        description = row.get('description_en') or row.get('description')
+
+        return {
+            "external_id": f"wikidata_{row['wikidata_id']}",
+            "source": "wikidata",
+            "source_url": f"https://www.wikidata.org/wiki/{row['wikidata_id']}",
+            "name": name[:500],
+            "description": description,
+            "location_type": location_type,
+            "latitude": float(row['latitude']),
+            "longitude": float(row['longitude']),
+            "address": row.get('address'),
+            "city": row.get('city'),
+            "postal_code": None,
+            "country": row.get('country'),
+            "country_code": row.get('country_code'),
+            "rating": None,
+            "price_type": 'unknown',
+            "price_min": None,
+            "price_max": None,
+            "amenities": [],
+            "features": features,
+            "tags": tags,
+            "images": [{"url": row['image_url'], "type": "photo"}] if row.get('image_url') else [],
+            "main_image_url": row.get('image_url'),
+            "is_active": True,
+            "raw_data": {
+                "wikidata_id": row.get('wikidata_id'),
+                "poi_type": poi_type,
+                "wikipedia_en": row.get('wikipedia_en'),
+                "heritage_status": row.get('heritage_status'),
+                "architectural_style": row.get('architectural_style'),
+            }
+        }
+
+
 # Registry of all scraper mappings
 SCRAPER_REGISTRY = {
     1: Park4NightMapping(),      # scraper_1: Park4Night places
@@ -496,6 +747,8 @@ SCRAPER_REGISTRY = {
     3: EventbriteMapping(),      # scraper_3: Eventbrite events
     4: TicketmasterMapping(),    # scraper_4: Ticketmaster events
     5: CamperContactMapping(),   # scraper_5: CamperContact places
+    11: OpenStreetMapMapping(),  # scraper_11: OpenStreetMap POIs (nature, attractions)
+    12: WikidataMapping(),       # scraper_12: Wikidata tourist attractions
     # Add new scrapers here as they're added to scraparr
 }
 
@@ -506,6 +759,8 @@ SCHEMA_REGISTRY = {
     'scraper_3': EventbriteMapping(),
     'scraper_4': TicketmasterMapping(),
     'scraper_5': CamperContactMapping(),
+    'scraper_11': OpenStreetMapMapping(),
+    'scraper_12': WikidataMapping(),
 }
 
 

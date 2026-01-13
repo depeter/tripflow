@@ -16,6 +16,18 @@ from app.api.schemas import (
 router = APIRouter(prefix="/locations", tags=["locations"])
 
 
+@router.get("/reverse-geocode", response_model=dict)
+async def reverse_geocode(latitude: float, longitude: float, db: Session = Depends(get_db)):
+    """Reverse geocode coordinates to address"""
+    service = LocationService(db)
+    result = await service.reverse_geocode(latitude, longitude)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    return {"address": result}
+
+
 @router.get("/{location_id}", response_model=LocationResponse)
 def get_location(location_id: int, db: Session = Depends(get_db)):
     """Get location by ID"""
@@ -78,15 +90,3 @@ def geocode_address(request: GeocodeRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Address not found")
 
     return result
-
-
-@router.get("/reverse-geocode", response_model=str)
-def reverse_geocode(latitude: float, longitude: float, db: Session = Depends(get_db)):
-    """Reverse geocode coordinates to address"""
-    service = LocationService(db)
-    address = service.reverse_geocode(latitude, longitude)
-
-    if not address:
-        raise HTTPException(status_code=404, detail="Address not found")
-
-    return address

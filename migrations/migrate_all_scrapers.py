@@ -224,7 +224,7 @@ class UniversalScraperMigration:
                 INSERT INTO tripflow.locations (
                     external_id, source, source_url,
                     name, description, location_type,
-                    latitude, longitude,
+                    latitude, longitude, geom,
                     address, city, postal_code, country, country_code,
                     rating, price_type, price_min, price_max, price_info,
                     amenities, features, tags,
@@ -235,6 +235,7 @@ class UniversalScraperMigration:
                     %(external_id)s, %(source)s, %(source_url)s,
                     %(name)s, %(description)s, %(location_type)s,
                     %(latitude)s, %(longitude)s,
+                    ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326),
                     %(address)s, %(city)s, %(postal_code)s, %(country)s, %(country_code)s,
                     %(rating)s, %(price_type)s, %(price_min)s, %(price_max)s, %(price_info)s,
                     %(amenities)s, %(features)s, %(tags)s,
@@ -246,6 +247,7 @@ class UniversalScraperMigration:
                 DO UPDATE SET
                     name = EXCLUDED.name,
                     description = EXCLUDED.description,
+                    geom = ST_SetSRID(ST_MakePoint(EXCLUDED.longitude, EXCLUDED.latitude), 4326),
                     updated_at = NOW()
                 RETURNING id
             """, {
